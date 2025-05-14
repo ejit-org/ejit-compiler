@@ -1,0 +1,9 @@
+[package]
+name = "ejit"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clear-cache = "0.1.1"
+libc = "0.2.169"
+
