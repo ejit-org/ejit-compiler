@@ -1,4 +1,4 @@
-use crate::{Cond, Error, Executable, Ins, Type, Vsize, R, V};
+use crate::{Cond, Error, Executable, Ins, Type, Vsize, R, R};
 
 mod base;
 mod vector;
@@ -241,7 +241,7 @@ impl R {
     }
 }
 
-impl V {
+impl R {
     // Return the REX bit and the MODRM bits.
     pub fn to_aarch64(&self) -> u32 {
         self.0 as u32
@@ -390,7 +390,7 @@ mod tests {
         use Ins::*;
         use Type::*;
         use Vsize::*;
-        let prog = Executable::from_ir(&[Vmov(F32, V32, V(1), V(2))]).unwrap();
+        let prog = Executable::from_ir(&[Vmov(F32, V32, R(1), R(2))]).unwrap();
         println!("{}", prog.fmt_url());
         // https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=ff0302d1+ff030291+c0035fd6&arch=arm64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly
         assert_eq!(prog.fmt_32(), "4140201e");
@@ -401,7 +401,7 @@ mod tests {
         use Ins::*;
         use Type::*;
         use Vsize::*;
-        let prog = Executable::from_ir(&[Vnot(U8, V64, V(1), V(2)), Vnot(U8, V128, V(1), V(2)), Ret]).unwrap();
+        let prog = Executable::from_ir(&[Vnot(U8, V64, R(1), R(2)), Vnot(U8, V128, R(1), R(2)), Ret]).unwrap();
         println!("{}", prog.fmt_url());
         // https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=ff0302d1+ff030291+c0035fd6&arch=arm64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly
         assert_eq!(prog.fmt_32(), "4158202e 4158206e c0035fd6");
@@ -412,14 +412,14 @@ mod tests {
         use Type::*;
         use Vsize::*;
         let prog = Executable::from_ir(&[
-            Vneg(U8, V64, V(1), V(2)),
-            Vneg(U16, V64, V(1), V(2)),
-            Vneg(U32, V64, V(1), V(2)),
-            Vneg(U64, V64, V(1), V(2)),
-            Vneg(U8, V128, V(1), V(2)),
-            Vneg(U16, V128, V(1), V(2)),
-            Vneg(U32, V128, V(1), V(2)),
-            Vneg(U64, V128, V(1), V(2)),
+            Vneg(U8, V64, R(1), R(2)),
+            Vneg(U16, V64, R(1), R(2)),
+            Vneg(U32, V64, R(1), R(2)),
+            Vneg(U64, V64, R(1), R(2)),
+            Vneg(U8, V128, R(1), R(2)),
+            Vneg(U16, V128, R(1), R(2)),
+            Vneg(U32, V128, R(1), R(2)),
+            Vneg(U64, V128, R(1), R(2)),
             Ret
         ]).unwrap();
         println!("{}", prog.fmt_url());
@@ -508,7 +508,7 @@ fn gen_ldst(code: &mut Vec<u8>, opcode: u32, ty: Type, dest: &R, ra: &R, imm: &i
     Ok(())
 }
 
-fn vgen2(code: &mut Vec<u8>, opcode: u32, dest: &V, src: &V, i: &Ins) -> Result<(), Error> {
+fn vgen2(code: &mut Vec<u8>, opcode: u32, dest: &R, src: &R, i: &Ins) -> Result<(), Error> {
     let opcode = opcode & !(0x1f<<5 | 0x1f);
     let opcode = opcode
         | src.to_aarch64() << 5
@@ -517,7 +517,7 @@ fn vgen2(code: &mut Vec<u8>, opcode: u32, dest: &V, src: &V, i: &Ins) -> Result<
     Ok(())
 }
 
-fn vgen3(code: &mut Vec<u8>, opcode: u32, dest: &V, src1: &V, src2: &V, i: &Ins) -> Result<(), Error> {
+fn vgen3(code: &mut Vec<u8>, opcode: u32, dest: &R, src1: &R, src2: &R, i: &Ins) -> Result<(), Error> {
     let opcode = opcode & !(0x1f<<16 | 0x1f<<5 | 0x1f);
     let opcode = opcode
         | src2.to_aarch64() << 16
@@ -527,7 +527,7 @@ fn vgen3(code: &mut Vec<u8>, opcode: u32, dest: &V, src1: &V, src2: &V, i: &Ins)
     Ok(())
 }
 
-fn vgenmem(code: &mut Vec<u8>, opcode: u32, v: &V, r: &R, imm: &i32, i: &Ins) -> Result<(), Error> {
+fn vgenmem(code: &mut Vec<u8>, opcode: u32, v: &R, r: &R, imm: &i32, i: &Ins) -> Result<(), Error> {
     let opcode = opcode & !(0xfff<<10 | 0x1f<<5 | 0x1f);
     if *imm >= (1<<12-1) || *imm < -(1<<12-1) {
         return Err(Error::InvalidImmediate(i.clone()));        

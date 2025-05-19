@@ -1,6 +1,5 @@
 use crate::{
-    CallInfo, Cond, CpuInfo, CpuLevel, EntryInfo, Error, Executable, Fixup, Ins, Scale, Src, State,
-    Type, Vsize, R, V,
+    CallInfo, Cond, CpuInfo, CpuLevel, EntryInfo, Error, Executable, Fixup, Ins, RegClass, Scale, Src, State, Type, Vsize, R
 };
 
 pub mod regs {
@@ -22,6 +21,57 @@ pub mod regs {
     pub const R13: R = R(13);
     pub const R14: R = R(14);
     pub const R15: R = R(15);
+
+    pub const XMM0: R = R(32+0);
+    pub const XMM1: R = R(32+1);
+    pub const XMM2: R = R(32+2);
+    pub const XMM3: R = R(32+3);
+    pub const XMM4: R = R(32+4);
+    pub const XMM5: R = R(32+5);
+    pub const XMM6: R = R(32+6);
+    pub const XMM7: R = R(32+7);
+    pub const XMM8: R = R(32+8);
+    pub const XMM9: R = R(32+9);
+    pub const XMM10: R = R(32+10);
+    pub const XMM11: R = R(32+11);
+    pub const XMM12: R = R(32+12);
+    pub const XMM13: R = R(32+13);
+    pub const XMM14: R = R(32+14);
+    pub const XMM15: R = R(32+15);
+
+    pub const YMM0: R = XMM0;
+    pub const YMM1: R = XMM1;
+    pub const YMM2: R = XMM2;
+    pub const YMM3: R = XMM3;
+    pub const YMM4: R = XMM4;
+    pub const YMM5: R = XMM5;
+    pub const YMM6: R = XMM6;
+    pub const YMM7: R = XMM7;
+    pub const YMM8: R = XMM8;
+    pub const YMM9: R = XMM9;
+    pub const YMM10: R = XMM10;
+    pub const YMM11: R = XMM11;
+    pub const YMM12: R = XMM12;
+    pub const YMM13: R = XMM13;
+    pub const YMM14: R = XMM14;
+    pub const YMM15: R = XMM15;
+
+    pub const ZMM0: R = XMM0;
+    pub const ZMM1: R = XMM1;
+    pub const ZMM2: R = XMM2;
+    pub const ZMM3: R = XMM3;
+    pub const ZMM4: R = XMM4;
+    pub const ZMM5: R = XMM5;
+    pub const ZMM6: R = XMM6;
+    pub const ZMM7: R = XMM7;
+    pub const ZMM8: R = XMM8;
+    pub const ZMM9: R = XMM9;
+    pub const ZMM10: R = XMM10;
+    pub const ZMM11: R = XMM11;
+    pub const ZMM12: R = XMM12;
+    pub const ZMM13: R = XMM13;
+    pub const ZMM14: R = XMM14;
+    pub const ZMM15: R = XMM15;
 }
 
 // See x86_64.s
@@ -275,16 +325,16 @@ pub fn cpu_info() -> CpuInfo {
                 RAX, RCX, RDX, RBX, RBP, RSI, RDI, R8, R9, R10, R11, R12, R13, R14,
             ][..],
         ),
-        // TODO: Rust seems to break the system V calling convention by not saving r15.
+        // TODO: Rust seems to break the system R calling convention by not saving r15.
         save: Box::from(&[RBX, RBP, R12, R13, R14][..]),
         // TODO: Should we include args registers?
         scratch: Box::from(&[RAX, RCX, RDX, R8, R9, R10, R11][..]),
         sp: RSP,
-        vargs: (0..7).map(|i| V(i)).collect(),
-        vres: Box::from(&[V(0), V(1)][..]),
+        vargs: (0..7).map(|i| R(XMM0.0+i)).collect(),
+        vres: Box::from(&[XMM0, XMM1][..]),
         vsave: Box::from(&[][..]),
-        vscratch: Box::from(&[V(0), V(1), V(2), V(3), V(4), V(5), V(6), V(7)][..]),
-        vany: (0..16).map(|i| V(i)).collect(),
+        vscratch: (0..7).map(|i| R(XMM0.0+i)).collect(),
+        vany: (0..16).map(|i| R(XMM0.0+i)).collect(),
     }
 }
 
@@ -370,7 +420,7 @@ impl Executable {
                     state.code.push(0xc3);
                 }
                 Cmov(cond, dest, src) => {
-                    if let Some(src) = src.as_reg() {
+                    if let Some(src) = src.as_gpr() {
                         let op = cond.cc() + 0x40;
                         gen_regreg(&mut state, op, dest, &src);
                     } else {
@@ -433,13 +483,13 @@ impl Executable {
                     gen_vop(&mut state, &OP_VMUL, ty, *vsize, v, v1, v2, i)?;
                 }
                 Vmov(ty, vsize, v, v1) => {
-                    gen_vop(&mut state, &OP_VMOV, ty, *vsize, v, &V(0), v1, i)?;
+                    gen_vop(&mut state, &OP_VMOV, ty, *vsize, v, &R(0), v1, i)?;
                 }
                 Vrecpe(ty, vsize, v, v1) => {
-                    gen_vop(&mut state, &OP_VRCP, ty, *vsize, v, &V(0), v1, i)?;
+                    gen_vop(&mut state, &OP_VRCP, ty, *vsize, v, &R(0), v1, i)?;
                 }
                 Vrsqrte(ty, vsize, v, v1) => {
-                    gen_vop(&mut state, &OP_VRSQRT, ty, *vsize, v, &V(0), v1, i)?;
+                    gen_vop(&mut state, &OP_VRSQRT, ty, *vsize, v, &R(0), v1, i)?;
                 }
                 Call(call_info) => {
                     gen_call(&mut state, call_info, i)?;
@@ -660,7 +710,7 @@ fn gen_call(state: &mut State, call_info: &CallInfo, i: &Ins) -> Result<(), Erro
         let (dest, src) = movs[i].clone();
         if movs[1..]
             .iter()
-            .find(|(dest2, src2)| src2.as_reg() == Some(dest))
+            .find(|(dest2, src2)| src2.as_gpr() == Some(dest))
             .is_some()
         {
             movs.push((dest.clone(), src.clone()));
@@ -702,7 +752,7 @@ fn gen_vimm(
     opcodes: &[(u8, u8); 6],
     ty: Type,
     vsize: Vsize,
-    v: &V,
+    v: &R,
     imm: i64,
     i: &Ins,
 ) -> Result<(), Error> {
@@ -747,8 +797,8 @@ fn gen_vop(
     opcodes: &[(u8, u8); 6],
     ty: &Type,
     vsize: Vsize,
-    v: &V,
-    v1: &V,
+    v: &R,
+    v1: &R,
     v2: &Src,
     i: &Ins,
 ) -> Result<(), Error> {
@@ -762,7 +812,7 @@ fn gen_vop(
         return Err(Error::InvalidType(i.clone()));
     }
 
-    if let Some(v2) = v2.as_vreg() {
+    if let Some(v2) = v2.as_gpr() {
         let modrm = 0xc0 + v2.to_x86_low() + v.to_x86_low() * 8;
         let (r, x, b, w) = (v.to_x86_high(), 0, v2.to_x86_high(), 0);
         let l = if vsize == Vsize::V128 { 0 } else { 1 };
@@ -941,7 +991,7 @@ fn gen_vload_store(
     state: &mut State,
     vsize: Vsize,
     op: u8,
-    v: &V,
+    v: &R,
     ra: &R,
     imm: i32,
     i: &Ins,
@@ -955,18 +1005,6 @@ fn gen_vload_store(
 }
 
 impl R {
-    // Return the MODRM bits.
-    pub fn to_x86_low(&self) -> u8 {
-        self.0 as u8 & 7
-    }
-
-    // Return the REX bit.
-    pub fn to_x86_high(&self) -> u8 {
-        (self.0 as u8 & 8) >> 3
-    }
-}
-
-impl V {
     // VEX bits.
     pub fn to_x86(&self) -> u8 {
         self.0 as u8
@@ -980,6 +1018,16 @@ impl V {
     // Return the REX bit.
     pub fn to_x86_high(&self) -> u8 {
         (self.0 as u8 & 8) >> 3
+    }
+
+    pub fn rc(&self) -> RegClass {
+        if self.0 <= regs::R15.0 {
+            RegClass::GPR
+        } else if self.0 >= regs::XMM0.0 && self.0 <= regs::XMM15.0 {
+            RegClass::VREG
+        } else {
+            RegClass::Unknown
+        }
     }
 }
 
@@ -1019,8 +1067,11 @@ fn gen_binary(
     src2: &Src,
     i: &Ins,
 ) -> Result<(), Error> {
+    if dest.rc() != RegClass::GPR || src1.rc() != RegClass::GPR {
+        return Err(Error::BadRegClass(i.clone()));
+    }
     gen_mov(state, dest, &src1.into(), i)?;
-    if let Some(src2) = src2.as_reg() {
+    if let Some(src2) = src2.as_gpr() {
         let opcode = opcodes[0];
         if opcode.len() == 3 {
             let op = opcode[1];
@@ -1052,7 +1103,7 @@ fn gen_unary(
     i: &Ins,
 ) -> Result<(), Error> {
     gen_mov(state, dest, src, i)?;
-    if let Some(src) = src.as_reg() {
+    if let Some(src) = src.as_gpr() {
         let opcode = opcodes[0];
         gen_regreg(state, opcode[1], dest, &src);
     } else {
@@ -1062,7 +1113,10 @@ fn gen_unary(
 }
 
 fn gen_mov(state: &mut State, dest: &R, src: &Src, i: &Ins) -> Result<(), Error> {
-    if let Some(src) = src.as_reg() {
+    if dest.rc() != RegClass::GPR {
+        return Err(Error::BadRegClass(i.clone()));
+    }
+    if let Some(src) = src.as_gpr() {
         if &src != dest {
             gen_regreg(state, 0x89, dest, &src);
         }
@@ -1124,13 +1178,17 @@ fn gen_div(
     src2: &Src,
     i: &Ins,
 ) -> Result<(), Error> {
+    if dest.rc() != RegClass::GPR || src1.rc() != RegClass::GPR {
+        return Err(Error::BadRegClass(i.clone()));
+    }
+
     let opcode = opcodes[0];
 
     let save_rax = dest != &regs::RAX;
     let save_rdx = dest != &regs::RDX;
     let use_stack = src2.as_imm64().is_some()
-        || src2.as_reg() == Some(regs::RAX)
-        || src2.as_reg() == Some(regs::RDX);
+        || src2.as_gpr() == Some(regs::RAX)
+        || src2.as_gpr() == Some(regs::RDX);
 
     if save_rax {
         gen_push(state, &regs::RAX.into(), i)?;
@@ -1151,7 +1209,7 @@ fn gen_div(
     }
 
     if !use_stack {
-        let Some(src2) = src2.as_reg() else {
+        let Some(src2) = src2.as_gpr() else {
             return Err(Error::InvalidSrcArgument(i.clone()));
         };
         // 48 f7 f0                div    %rax
@@ -1189,7 +1247,7 @@ fn gen_shift(
     src2: &Src,
     i: &Ins,
 ) -> Result<(), Error> {
-    if let Some(reg) = src2.as_reg() {
+    if let Some(reg) = src2.as_gpr() {
         // TODO: Use SHLX etc if BMI available.
         if dest != &regs::RCX {
             gen_push(state, &regs::RCX.into(), i)?;
@@ -1225,7 +1283,10 @@ fn gen_shift(
 /// The push instruction on x86 is quite efficient and is great
 /// fo constant generation.
 fn gen_push(state: &mut State, src: &Src, i: &Ins) -> Result<(), Error> {
-    if let Some(src) = src.as_reg() {
+    if let Some(src) = src.as_gpr() {
+        if src.rc() != RegClass::GPR {
+            return Err(Error::BadRegClass(i.clone()));
+        }
         let op = OP_PUSH + src.to_x86_low();
         if src.to_x86_high() == 0 {
             state.code.extend([op]);
@@ -1255,7 +1316,10 @@ fn gen_push(state: &mut State, src: &Src, i: &Ins) -> Result<(), Error> {
 }
 
 fn gen_pop(state: &mut State, dest: &Src, i: &Ins) -> Result<(), Error> {
-    if let Some(dest) = dest.as_reg() {
+    if let Some(dest) = dest.as_gpr() {
+        if dest.rc() != RegClass::GPR {
+            return Err(Error::BadRegClass(i.clone()));
+        }
         let op = OP_POP + dest.to_x86_low();
         if dest.to_x86_high() == 0 {
             state.code.extend([op]);
