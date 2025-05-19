@@ -6,21 +6,18 @@ use std::rc::Rc;
 
 use clear_cache::clear_cache;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-/// Virtual 64 bit integer register
-pub struct R(pub (crate) u8);
+pub type RInner = u16;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-/// Virtual vector register
-pub struct V(pub (crate) u8);
+/// Virtual 64 bit integer register
+pub struct R(pub (crate) RInner);
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Imm(pub u64);
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Src {
-    SR(u8),
-    SV(u8),
+    SR(RInner),
     Imm(i64),
     Bytes(Box<[u8]>),
 }
@@ -34,12 +31,6 @@ impl From<R> for Src {
 impl From<&R> for Src {
     fn from(value: &R) -> Self {
         Self::SR(value.0)
-    }
-}
-
-impl From<V> for Src {
-    fn from(value: V) -> Self {
-        Self::SV(value.0)
     }
 }
 
@@ -96,15 +87,16 @@ impl From<f64> for Src {
 }
 
 impl Src {
-    fn as_reg(&self) -> Option<R> {
+    fn rc(&self) -> RegClass {
         match self {
-            Src::SR(n) => Some(R(*n)),
-            _ => None,
+            Src::SR(n) => R(*n).rc(),
+            _ => RegClass::Unknown,
         }
     }
-    fn as_vreg(&self) -> Option<V> {
+
+    fn as_gpr(&self) -> Option<R> {
         match self {
-            Src::SV(n) => Some(V(*n)),
+            Src::SR(n) if R(*n).rc() == RegClass::GPR => Some(R(*n)),
             _ => None,
         }
     }
@@ -130,12 +122,6 @@ impl Src {
     fn is_reg(&self) -> bool {
         match self {
             Src::SR(n) => true,
-            _ => false,
-        }
-    }
-    fn is_vreg(&self) -> bool {
-        match self {
-            Src::SV(n) => true,
             _ => false,
         }
     }
@@ -301,11 +287,11 @@ pub struct CpuInfo {
     any: Box<[R]>,
 
     // Vector register class
-    vargs: Box<[V]>,
-    vres: Box<[V]>,
-    vsave: Box<[V]>,
-    vscratch: Box<[V]>,
-    vany: Box<[V]>,
+    vargs: Box<[R]>,
+    vres: Box<[R]>,
+    vsave: Box<[R]>,
+    vscratch: Box<[R]>,
+    vany: Box<[R]>,
 
     sp: R,
 }
@@ -335,19 +321,19 @@ impl CpuInfo {
         &self.scratch
     }
     
-    pub fn vargs(&self) -> &[V] {
+    pub fn vargs(&self) -> &[R] {
         &self.vargs
     }
     
-    pub fn vres(&self) -> &[V] {
+    pub fn vres(&self) -> &[R] {
         &self.vres
     }
     
-    pub fn vsave(&self) -> &[V] {
+    pub fn vsave(&self) -> &[R] {
         &self.vsave
     }
     
-    pub fn vscratch(&self) -> &[V] {
+    pub fn vscratch(&self) -> &[R] {
         &self.vscratch
     }
     
@@ -383,12 +369,12 @@ impl CpuInfo {
 
     /// User vector register allocation.
     /// Registers allocated will be clobbered by calls.
-    pub fn alloc_vscratch(&mut self) -> Result<V, Error> {
-        for V(i) in &self.vscratch {
+    pub fn alloc_vscratch(&mut self) -> Result<R, Error> {
+        for R(i) in &self.vscratch {
             let mask = 1 << (*i as u32);
             if self.alloc[1] & mask == 0 {
                 self.alloc[1] |= mask;
-                return Ok(V(*i));
+                return Ok(R(*i));
             }
         }
         return Err(Error::NoAvailableRegisters);
@@ -409,12 +395,12 @@ impl CpuInfo {
 
     /// User integer register allocation.
     /// These registers *may* be clobbered by function calls, so save them!
-    pub fn alloc_vany(&mut self) -> Result<V, Error> {
-        for V(i) in &self.vany {
+    pub fn alloc_vany(&mut self) -> Result<R, Error> {
+        for R(i) in &self.vany {
             let mask = 1 << (*i as u32);
             if self.alloc[1] & mask == 0 {
                 self.alloc[1] |= mask;
-                return Ok(V(*i));
+                return Ok(R(*i));
             }
         }
         return Err(Error::NoAvailableRegisters);
@@ -433,12 +419,12 @@ impl CpuInfo {
     }
     
     /// User integer register allocation.
-    pub fn alloc_varg(&mut self) -> Result<V, Error> {
-        for V(i) in &self.vargs {
+    pub fn alloc_varg(&mut self) -> Result<R, Error> {
+        for R(i) in &self.vargs {
             let mask = 1 << (*i as u32);
             if self.alloc[1] & mask == 0 {
                 self.alloc[1] |= mask;
-                return Ok(V(*i));
+                return Ok(R(*i));
             }
         }
         return Err(Error::NoAvailableRegisters);
@@ -448,7 +434,7 @@ impl CpuInfo {
         &self.any
     }
 
-    pub fn vany(&self) -> &[V] {
+    pub fn vany(&self) -> &[R] {
         &self.vany
     }
 
@@ -460,6 +446,15 @@ impl CpuInfo {
         }
         Err(Error::CouldNotFindTempReg)
     }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum RegClass {
+    GPR,
+    VREG,
+    FREG,
+    MASK,
+    Unknown,
 }
 
 pub fn src0() -> Box<[Src]> {
@@ -641,8 +636,8 @@ pub enum Ins {
     // Mem
     Ld(Type, R, R, i32),
     St(Type, R, R, i32),
-    Vld(Type, Vsize, V, R, i32),
-    Vst(Type, Vsize, V, R, i32),
+    Vld(Type, Vsize, R, R, i32),
+    Vst(Type, Vsize, R, R, i32),
 
     // Integer Arithmetic.
     Add(R, R, Src),
@@ -675,23 +670,23 @@ pub enum Ins {
     // Movx(R, R, u32),
 
     // Vector arithmetic
-    Vadd(Type, Vsize, V, V, Src),
-    Vsub(Type, Vsize, V, V, Src),
-    Vand(Type, Vsize, V, V, Src),
-    Vor(Type, Vsize, V, V, Src),
-    Vxor(Type, Vsize, V, V, Src),
-    Vshl(Type, Vsize, V, V, Src), // Note: on x86 src2 is broadcast.
-    Vshr(Type, Vsize, V, V, Src), // Note: on x86 src2 is broadcast.
-    Vmul(Type, Vsize, V, V, Src),
+    Vadd(Type, Vsize, R, R, Src),
+    Vsub(Type, Vsize, R, R, Src),
+    Vand(Type, Vsize, R, R, Src),
+    Vor(Type, Vsize, R, R, Src),
+    Vxor(Type, Vsize, R, R, Src),
+    Vshl(Type, Vsize, R, R, Src), // Note: on x86 src2 is broadcast.
+    Vshr(Type, Vsize, R, R, Src), // Note: on x86 src2 is broadcast.
+    Vmul(Type, Vsize, R, R, Src),
 
-    Vmov(Type, Vsize, V, Src),
-    Vrecpe(Type, Vsize, V, Src),
-    Vrsqrte(Type, Vsize, V, Src),
+    Vmov(Type, Vsize, R, Src),
+    Vrecpe(Type, Vsize, R, Src),
+    Vrsqrte(Type, Vsize, R, Src),
 
-    // Vcmp(Cond, Type, Vsize, V, Src),
-    // Vsel(Type, Vsize, V, V, Src),
-    // Vany(Type, Vsize, V, Src), // nz if any true
-    // Vall(Type, Vsize, V, Src), // nz if all true
+    // Vcmp(Cond, Type, Vsize, R, Src),
+    // Vsel(Type, Vsize, R, R, Src),
+    // Vany(Type, Vsize, R, Src), // nz if any true
+    // Vall(Type, Vsize, R, Src), // nz if all true
 
     // Control flow
     Call(Box<CallInfo>),
@@ -746,6 +741,7 @@ pub enum Error {
     NoAvailableRegisters,
     CouldNotFindTempReg,
     BadBytesLength,
+    BadRegClass(Ins),
 }
 
 pub struct Executable {
