@@ -14,9 +14,9 @@ jobs:
     runs-on: [ubuntu-24.04]
 
     steps:
+    - uses: actions/checkout@v4
     - name: Featutes
       run: cargo run --bin cpu_features
-    - uses: actions/checkout@v4
     # - name: Test
     #   run: cargo test --verbose
 
