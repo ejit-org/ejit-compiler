@@ -148,7 +148,6 @@ impl Src {
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[repr(u8)]
 pub enum Cond {
-    // Always,
     Eq,
     Ne,
     Sgt,
@@ -481,11 +480,26 @@ impl CpuLevel {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// Patch four bytes of pc-relative instruction
+struct PcRel4{
+    label: u32,
+    offset: usize,
+    bits: u32,
+    lshift: u32,
+    rshift: u32,
+    delta: isize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+// TODO: make these more generic and pure.
+// The parameter should only refer to the label or constant.
 enum Fixup {
     Adr(R, u32),
     B(Cond, u32),
     Const(usize, isize),
     Label(u32, isize),
+
+    PcRel4(PcRel4),
 }
 
 struct State {
@@ -742,6 +756,7 @@ pub enum Error {
     CouldNotFindTempReg,
     BadBytesLength,
     BadRegClass(Ins),
+    SpNotAllowed(Ins),
 }
 
 pub struct Executable {

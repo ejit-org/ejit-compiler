@@ -4,7 +4,11 @@
 //! 
 use std::{cell::RefCell, sync::{Arc, Mutex}};
 
+#[cfg(target_arch="x64_64")]
 use crate::x86_64::cpu_info;
+
+#[cfg(target_arch="aarch64")]
+use crate::aarch64::cpu_info;
 
 use super::*;
 
