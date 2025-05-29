@@ -574,6 +574,9 @@ impl Executable {
                         .try_into()
                         .map_err(|_| Error::CodeTooBig)?;
                     state.code[loc..loc + 4].copy_from_slice(&offset.to_le_bytes());
+                },
+                Fixup::PcRel4(_) => {
+                    unimplemented!()
                 }
             }
         }
