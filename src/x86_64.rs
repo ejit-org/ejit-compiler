@@ -1,5 +1,5 @@
 use crate::{
-    CallInfo, Cond, CpuInfo, CpuLevel, EntryInfo, Error, Executable, Fixup, Ins, RegClass, Scale, Src, State, Type, Vsize, R
+    CallInfo, Compiler, CompilerResult, Cond, CpuInfo, CpuLevel, EntryInfo, Error, Executable, Fixup, Ins, RegClass, Scale, Src, State, Type, Vsize, R
 };
 
 pub mod regs {
@@ -278,6 +278,7 @@ const OP_JMP: u8 = 0xe9;
 const OP_CALL: u8 = 0xe8;
 
 /// A simlified CPU level specification.
+#[cfg(target_arch = "x86_64")]
 pub fn cpu_info() -> CpuInfo {
     let cpu_level = if !is_x86_feature_detected!("sse")
         || !is_x86_feature_detected!("sse2")
@@ -311,13 +312,11 @@ pub fn cpu_info() -> CpuInfo {
     // pre-allocate SP
     let alloc0 = 1 << RSP.0;
     // Note for avx512, we will have 32 vector registers.
-    let max_regs = [16, 16];
 
     use regs::*;
     CpuInfo {
         cpu_level,
         alloc: [alloc0, 0],
-        max_regs,
         args: Box::from(&[RDI, RSI, RDX, RCX, R8, R9][..]),
         res: Box::from(&[RAX, RDX][..]),
         any: Box::from(
@@ -338,18 +337,18 @@ pub fn cpu_info() -> CpuInfo {
     }
 }
 
-impl Executable {
-    pub fn from_ir(ins: &[Ins]) -> Result<Executable, Error> {
-        Self::from_ir_and_info(ins, cpu_info())
-    }
+struct X86_64Compiler {
 
-    pub fn from_ir_and_info(ins: &[Ins], cpu_info: CpuInfo) -> Result<Executable, Error> {
+}
+
+impl Compiler for X86_64Compiler {
+    fn compile(&self, ins: &[Ins], cpu_info: &CpuInfo) -> Result<CompilerResult, Error> {
         let mut state = State {
             code: Vec::new(),
             labels: Vec::new(),
             constants: Vec::new(),
             fixups: Vec::new(),
-            cpu_info,
+            cpu_info: cpu_info.clone(),
         };
         for i in ins {
             use Ins::*;
@@ -420,7 +419,7 @@ impl Executable {
                     state.code.push(0xc3);
                 }
                 Cmov(cond, dest, src) => {
-                    if let Some(src) = src.as_gpr() {
+                    if let Some(src) = src.as_gpr(&state.cpu_info) {
                         let op = cond.cc() + 0x40;
                         gen_regreg(&mut state, op, dest, &src);
                     } else {
@@ -580,7 +579,7 @@ impl Executable {
                 }
             }
         }
-        Ok(Executable::new(&state.code, state.labels))
+        Ok(CompilerResult::new(state.code, state.labels))
     }
 }
 
@@ -713,7 +712,7 @@ fn gen_call(state: &mut State, call_info: &CallInfo, i: &Ins) -> Result<(), Erro
         let (dest, src) = movs[i].clone();
         if movs[1..]
             .iter()
-            .find(|(dest2, src2)| src2.as_gpr() == Some(dest))
+            .find(|(dest2, src2)| src2.as_gpr(state.cpu_info) == Some(dest))
             .is_some()
         {
             movs.push((dest.clone(), src.clone()));
@@ -815,7 +814,7 @@ fn gen_vop(
         return Err(Error::InvalidType(i.clone()));
     }
 
-    if let Some(v2) = v2.as_gpr() {
+    if let Some(v2) = v2.as_gpr(state.cpu_info) {
         let modrm = 0xc0 + v2.to_x86_low() + v.to_x86_low() * 8;
         let (r, x, b, w) = (v.to_x86_high(), 0, v2.to_x86_high(), 0);
         let l = if vsize == Vsize::V128 { 0 } else { 1 };
@@ -1022,16 +1021,6 @@ impl R {
     pub fn to_x86_high(&self) -> u8 {
         (self.0 as u8 & 8) >> 3
     }
-
-    pub fn rc(&self) -> RegClass {
-        if self.0 <= regs::R15.0 {
-            RegClass::GPR
-        } else if self.0 >= regs::XMM0.0 && self.0 <= regs::XMM15.0 {
-            RegClass::VREG
-        } else {
-            RegClass::Unknown
-        }
-    }
 }
 
 impl Cond {
@@ -1070,11 +1059,11 @@ fn gen_binary(
     src2: &Src,
     i: &Ins,
 ) -> Result<(), Error> {
-    if dest.rc() != RegClass::GPR || src1.rc() != RegClass::GPR {
+    if dest.rc(state.cpu_info) != RegClass::GPR || src1.rc(state.cpu_info) != RegClass::GPR {
         return Err(Error::BadRegClass(i.clone()));
     }
     gen_mov(state, dest, &src1.into(), i)?;
-    if let Some(src2) = src2.as_gpr() {
+    if let Some(src2) = src2.as_gpr(state.cpu_info) {
         let opcode = opcodes[0];
         if opcode.len() == 3 {
             let op = opcode[1];
@@ -1106,7 +1095,7 @@ fn gen_unary(
     i: &Ins,
 ) -> Result<(), Error> {
     gen_mov(state, dest, src, i)?;
-    if let Some(src) = src.as_gpr() {
+    if let Some(src) = src.as_gpr(state.cpu_info) {
         let opcode = opcodes[0];
         gen_regreg(state, opcode[1], dest, &src);
     } else {
@@ -1116,10 +1105,10 @@ fn gen_unary(
 }
 
 fn gen_mov(state: &mut State, dest: &R, src: &Src, i: &Ins) -> Result<(), Error> {
-    if dest.rc() != RegClass::GPR {
+    if dest.rc(state.cpu_info) != RegClass::GPR {
         return Err(Error::BadRegClass(i.clone()));
     }
-    if let Some(src) = src.as_gpr() {
+    if let Some(src) = src.as_gpr(state.cpu_info) {
         if &src != dest {
             gen_regreg(state, 0x89, dest, &src);
         }
@@ -1181,7 +1170,7 @@ fn gen_div(
     src2: &Src,
     i: &Ins,
 ) -> Result<(), Error> {
-    if dest.rc() != RegClass::GPR || src1.rc() != RegClass::GPR {
+    if dest.rc(state.cpu_info) != RegClass::GPR || src1.rc(state.cpu_info) != RegClass::GPR {
         return Err(Error::BadRegClass(i.clone()));
     }
 
@@ -1190,8 +1179,8 @@ fn gen_div(
     let save_rax = dest != &regs::RAX;
     let save_rdx = dest != &regs::RDX;
     let use_stack = src2.as_imm64().is_some()
-        || src2.as_gpr() == Some(regs::RAX)
-        || src2.as_gpr() == Some(regs::RDX);
+        || src2.as_gpr(state.cpu_info) == Some(regs::RAX)
+        || src2.as_gpr(state.cpu_info) == Some(regs::RDX);
 
     if save_rax {
         gen_push(state, &regs::RAX.into(), i)?;
@@ -1212,7 +1201,7 @@ fn gen_div(
     }
 
     if !use_stack {
-        let Some(src2) = src2.as_gpr() else {
+        let Some(src2) = src2.as_gpr(state.cpu_info) else {
             return Err(Error::InvalidSrcArgument(i.clone()));
         };
         // 48 f7 f0                div    %rax
@@ -1250,7 +1239,7 @@ fn gen_shift(
     src2: &Src,
     i: &Ins,
 ) -> Result<(), Error> {
-    if let Some(reg) = src2.as_gpr() {
+    if let Some(reg) = src2.as_gpr(state.cpu_info) {
         // TODO: Use SHLX etc if BMI available.
         if dest != &regs::RCX {
             gen_push(state, &regs::RCX.into(), i)?;
@@ -1286,8 +1275,8 @@ fn gen_shift(
 /// The push instruction on x86 is quite efficient and is great
 /// fo constant generation.
 fn gen_push(state: &mut State, src: &Src, i: &Ins) -> Result<(), Error> {
-    if let Some(src) = src.as_gpr() {
-        if src.rc() != RegClass::GPR {
+    if let Some(src) = src.as_gpr(state.cpu_info) {
+        if src.rc(state.cpu_info) != RegClass::GPR {
             return Err(Error::BadRegClass(i.clone()));
         }
         let op = OP_PUSH + src.to_x86_low();
@@ -1319,8 +1308,8 @@ fn gen_push(state: &mut State, src: &Src, i: &Ins) -> Result<(), Error> {
 }
 
 fn gen_pop(state: &mut State, dest: &Src, i: &Ins) -> Result<(), Error> {
-    if let Some(dest) = dest.as_gpr() {
-        if dest.rc() != RegClass::GPR {
+    if let Some(dest) = dest.as_gpr(state.cpu_info) {
+        if dest.rc(state.cpu_info) != RegClass::GPR {
             return Err(Error::BadRegClass(i.clone()));
         }
         let op = OP_POP + dest.to_x86_low();

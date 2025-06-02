@@ -1,5 +1,5 @@
 use crate::{
-    CallInfo, Cond, CpuInfo, CpuLevel, EntryInfo, Error, Executable, Fixup, Ins, PcRel4, RegClass, Scale, Src, State, Type, Vsize, R
+    CallInfo, Compiler, CompilerResult, Cond, CpuInfo, CpuLevel, EntryInfo, Error, Executable, Fixup, Ins, PcRel4, RegClass, RegInfo, Scale, Src, State, Type, Vsize, R
 };
 
 pub mod regs {
@@ -75,15 +75,95 @@ pub mod regs {
     pub const V31: R = R(32 + 31);
 }
 
+// See https://github.com/ARM-software/abi-aa/blob/main/sysvabi64/sysvabi64.rst
+// https://en.wikipedia.org/wiki/Calling_convention
+const REG_INFO : &[RegInfo] = &[
+    // x0-x7
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(0), ret: Some(0) },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(1), ret: Some(1) },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(2), ret: Some(2) },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(3), ret: Some(3) },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(4), ret: Some(4) },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(5), ret: Some(5) },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(6), ret: Some(6) },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(7), ret: Some(7) },
+    // x8-x15
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: true, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    // x16-x23
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: true, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    // x24-x31
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: false, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: false, special: true, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: false, special: true, arg: None, ret: None },
+
+    // v0-v7
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(0), ret: Some(0) },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(1), ret: Some(1) },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(2), ret: Some(2) },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(3), ret: Some(3) },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(4), ret: Some(4) },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(5), ret: Some(5) },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(6), ret: Some(6) },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(7), ret: Some(7) },
+    // v8-v15
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    // v16-v23
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    // v24-v31
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+];
+
 /// A simlified CPU level specification.
 pub fn cpu_info() -> CpuInfo {
     // TODO:
     let cpu_level = CpuLevel::Simd128;
 
+    let compiler = Aarch64Compiler{};
+
     // pre-allocate SP
     let alloc0 = 1 << SP.0;
     // Note for avx512, we will have 32 vector registers.
-    let max_regs = [16, 16];
+    // let max_regs = [16, 16];
 
     // See https://github.com/ARM-software/abi-aa/blob/main/sysvabi64/sysvabi64.rst
     // https://en.wikipedia.org/wiki/Calling_convention
@@ -102,8 +182,9 @@ pub fn cpu_info() -> CpuInfo {
     use regs::*;
     CpuInfo {
         cpu_level,
+        compiler: Box::new(compiler),
+        reg_info: &REG_INFO,
         alloc: [alloc0, 0],
-        max_regs,
         args: Box::from(&[X0, X1, X2, X3, X4, X5, X6, X7][..]),
         res: Box::from(&[X0, X1, X2, X3, X4, X5, X6, X7][..]),
         any: Box::from(
@@ -170,18 +251,18 @@ impl Cond {
     }
 }
 
-impl Executable {
-    pub fn from_ir(ins: &[Ins]) -> Result<Executable, Error> {
-        Self::from_ir_and_info(ins, cpu_info())
-    }
+struct Aarch64Compiler {
 
-    pub fn from_ir_and_info(ins: &[Ins], cpu_info: CpuInfo) -> Result<Executable, Error> {
+}
+
+impl Compiler for Aarch64Compiler {
+    fn compile(&self, ins: &[Ins], cpu_info: &CpuInfo) -> Result<CompilerResult, Error> {
         let mut state = State {
             code: Vec::new(),
             labels: Vec::new(),
             constants: Vec::new(),
             fixups: Vec::new(),
-            cpu_info,
+            cpu_info: cpu_info,
         };
         for i in ins {
             use Ins::*;
@@ -366,7 +447,7 @@ impl Executable {
                 }
             }
         }
-        Ok(Executable::new(&state.code, state.labels))
+        Ok(CompilerResult::new(state.code, state.labels))
     }
 }
 
@@ -718,16 +799,6 @@ impl R {
     pub fn to_arm64(&self) -> u32 {
         self.0 as u32
     }
-
-    pub fn rc(&self) -> RegClass {
-        if self.0 <= regs::SP.0 {
-            RegClass::GPR
-        } else if self.0 >= regs::V0.0 && self.0 <= regs::V31.0 {
-            RegClass::VREG
-        } else {
-            RegClass::Unknown
-        }
-    }
 }
 
 fn gen_binary(
@@ -738,10 +809,10 @@ fn gen_binary(
     src2: &Src,
     i: &Ins,
 ) -> Result<(), Error> {
-    if dest.rc() != RegClass::GPR || src1.rc() != RegClass::GPR {
+    if dest.rc(&state.cpu_info) != RegClass::GPR || src1.rc(&state.cpu_info) != RegClass::GPR {
         return Err(Error::BadRegClass(i.clone()));
     }
-    if let Some(src2) = src2.as_gpr() {
+    if let Some(src2) = src2.as_gpr(&state.cpu_info) {
         if src2 == regs::SP {
             return Err(Error::SpNotAllowed(i.clone()));
         }
@@ -829,7 +900,7 @@ fn gen_binary(
 }
 
 fn gen_unary(state: &mut State, op: u32, dest: &R, src: &Src, i: &Ins) -> Result<(), Error> {
-    if let Some(src) = src.as_gpr() {
+    if let Some(src) = src.as_gpr(&state.cpu_info) {
         if op == OP_CMP {
             gen::reg_shifted(
                 state,
@@ -875,10 +946,10 @@ fn gen_unary(state: &mut State, op: u32, dest: &R, src: &Src, i: &Ins) -> Result
 }
 
 fn gen_mov(state: &mut State, dest: &R, src: &Src, i: &Ins) -> Result<(), Error> {
-    if dest.rc() != RegClass::GPR {
+    if dest.rc(&state.cpu_info) != RegClass::GPR {
         return Err(Error::BadRegClass(i.clone()));
     }
-    if let Some(r) = src.as_gpr() {
+    if let Some(r) = src.as_gpr(&state.cpu_info) {
         if &r != dest {
             gen_unary(state, OP_MOV, dest, src, i);
         }
@@ -894,7 +965,7 @@ fn gen_mov(state: &mut State, dest: &R, src: &Src, i: &Ins) -> Result<(), Error>
 /// fo constant generation.
 fn gen_push(state: &mut State, src: &Src, i: &Ins) -> Result<(), Error> {
     // if let Some(src) = src.as_gpr() {
-    //     if src.rc() != RegClass::GPR {
+    //     if src.rc(&state.cpu_info) != RegClass::GPR {
     //         return Err(Error::BadRegClass(i.clone()));
     //     }
     //     let op = OP_PUSH + src.to_x86_low();
@@ -927,7 +998,7 @@ fn gen_push(state: &mut State, src: &Src, i: &Ins) -> Result<(), Error> {
 
 fn gen_pop(state: &mut State, dest: &Src, i: &Ins) -> Result<(), Error> {
     // if let Some(dest) = dest.as_gpr() {
-    //     if dest.rc() != RegClass::GPR {
+    //     if dest.rc(&state.cpu_info) != RegClass::GPR {
     //         return Err(Error::BadRegClass(i.clone()));
     //     }
     //     let op = OP_POP + dest.to_x86_low();
@@ -1055,9 +1126,9 @@ pub mod gen {
 
 #[cfg(test)]
 mod tests {
-    use crate::{regs, Cond, Executable, Ins};
+    use crate::{Cond, Executable, Ins};
 
-    use super::bitconst;
+    use super::{bitconst, regs};
 
     #[test]
     fn test_binary() {
@@ -1109,7 +1180,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             prog.fmt_url(),
-            "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=48+01+c0+48+29+c0+48+21+c0+48+09+c0+48+31+c0+51+48+89+c1+48+d3+e0+59+51+48+89+c1+48+d3+e8+59+51+48+89+c1+48+d3+f8+59+48+0f+af+c0+52+50+31+d2+48+f7+34+24+48+83+c4+08+5a+52+50+48+99+48+f7+3c+24+48+83+c4+08+5a&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
+            "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=410003ab+410003eb+410003ba+410003fa+410003ea+410003aa+410003ca+4120c39a+4124c39a+4128c39a+417c039b+4108c39a+410cc39a+410000b1+410000f1+41001fba+41001ffa+41001fea+41001faa+41001fca+4120df9a+4124df9a+4128df9a+417c1f9b+4108df9a+410cdf9a+418c04b1+418c04f1+08030058+410008ba+c8020058+410008fa+88020058+410008ea+48020058+410008aa+08020058+410008ca+c8010058+4120c89a+88010058+4124c89a+48010058+4128c89a+08010058+417c089b+c8000058+4108c89a+88000058+410cc89a+418c44b1+418c44f1+23010000+00000000&arch=arm64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
         );
     }
 

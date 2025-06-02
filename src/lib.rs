@@ -12,6 +12,27 @@ pub type RInner = u16;
 /// Virtual 64 bit integer register
 pub struct R(pub (crate) RInner);
 
+impl R {
+    fn rc(self, cpu_info: &CpuInfo) -> RegClass {
+        cpu_info.ri(self).reg_class
+    }
+}
+
+struct CompilerResult {
+    pub code: Vec<u8>,
+    pub labels: Vec<(u32, usize)>,
+}
+
+impl CompilerResult {
+    fn new(code: Vec<u8>, labels: Vec<(u32, usize)>) -> Self {
+        Self { code, labels }
+    }
+}
+
+pub trait Compiler {
+    fn compile(&self, ins: &[Ins], cpu_info: &CpuInfo) -> Result<CompilerResult, Error>;
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Imm(pub u64);
 
@@ -87,16 +108,16 @@ impl From<f64> for Src {
 }
 
 impl Src {
-    fn rc(&self) -> RegClass {
+    fn rc(&self, cpu_info: &CpuInfo) -> RegClass {
         match self {
-            Src::SR(n) => R(*n).rc(),
+            Src::SR(n) => R(*n).rc(cpu_info),
             _ => RegClass::Unknown,
         }
     }
 
-    fn as_gpr(&self) -> Option<R> {
+    fn as_gpr(&self, cpu_info: &CpuInfo) -> Option<R> {
         match self {
-            Src::SR(n) if R(*n).rc() == RegClass::GPR => Some(R(*n)),
+            Src::SR(n) if R(*n).rc(cpu_info) == RegClass::GPR => Some(R(*n)),
             _ => None,
         }
     }
@@ -273,10 +294,23 @@ pub enum CpuLevel {
 }
 
 #[derive(Clone, Debug)]
+pub struct RegInfo {
+    pub reg_class: RegClass,
+    pub callee_save: bool,
+    pub scratch: bool,
+    pub special: bool,
+    pub arg: Option<usize>,
+    pub ret: Option<usize>,
+}
+
 pub struct CpuInfo {
     cpu_level: CpuLevel,
+
+    compiler: Box<dyn Compiler>,
+
+    reg_info: &'static [RegInfo],
+
     alloc: [u128; 2],
-    max_regs: [usize; 2],
 
     // Integer register class
     args: Box<[R]>,
@@ -302,6 +336,10 @@ impl CpuInfo {
     
     pub fn cpu_level(&self) -> CpuLevel {
         self.cpu_level
+    }
+
+    pub fn ri(&self, r: R) -> &RegInfo {
+        &self.reg_info[usize::from(r.0)]
     }
     
     pub fn args(&self) -> &[R] {
@@ -447,7 +485,7 @@ impl CpuInfo {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum RegClass {
     GPR,
     VREG,
@@ -502,15 +540,15 @@ enum Fixup {
     PcRel4(PcRel4),
 }
 
-struct State {
+struct State<'c> {
     code: Vec<u8>,
     labels: Vec<(u32, usize)>,
     constants: Vec<u8>,
     fixups: Vec<(usize, Fixup)>,
-    cpu_info: CpuInfo,
+    cpu_info: &'c CpuInfo,
 }
 
-impl State {
+impl<'c> State<'c> {
     fn constant(&mut self, c: &[u8]) -> usize {
         if let Some(pos) = self.constants.windows(c.len()).position(|w| w == c) {
             pos
@@ -766,6 +804,11 @@ pub struct Executable {
 }
 
 impl Executable {
+    fn from_ir(ins: &[Ins]) -> Result<Self, Error> {
+        // let res = cpu_info.compiler.compile(ins)?;
+        todo!();
+    }
+
     fn new(code: &[u8], labels: Vec<(u32, usize)>) -> Self {
         let addr = std::ptr::null_mut();
         let len = code.len();
@@ -864,20 +907,9 @@ impl Drop for Executable {
     }
 }
 
-#[cfg(target_arch = "x86_64")]
-mod x86_64;
 
-#[cfg(target_arch = "x86_64")]
-pub use x86_64::regs;
-
-#[cfg(target_arch = "x86_64")]
-pub use x86_64::cpu_info;
-
-#[cfg(target_arch = "aarch64")]
-mod aarch64;
-
-#[cfg(target_arch = "aarch64")]
-pub use aarch64::regs;
+pub mod x86_64;
+pub mod aarch64;
 
 #[cfg(test)]
 mod generic_tests;

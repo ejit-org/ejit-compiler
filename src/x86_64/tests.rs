@@ -1,4 +1,6 @@
-use crate::{regs, Executable, Ins, Type, Vsize, R};
+use crate::{Executable, Ins, Type, Vsize, R};
+
+use super::regs;
 
 #[test]
 fn test_add() {

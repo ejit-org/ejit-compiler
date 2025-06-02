@@ -21,7 +21,6 @@ fn instruction_size() {
 #[test]
 fn generic_basic() {
     use Ins::*;
-    // use regs::*;
     let cpu_info = cpu_info();
     let res0 = cpu_info.res()[0];
     let arg0 = cpu_info.args()[0];
@@ -48,7 +47,6 @@ fn generic_basic() {
 fn generic_branch() {
     fn test_one_branch(c: Cond, expected: [bool; 5]) {
         use Ins::*;
-        use regs::*;
         const IS_FALSE : u32 = 0;
         const IS_TRUE : u32 = 1;
         let cpu_info = cpu_info();
@@ -93,7 +91,6 @@ fn generic_branch() {
 fn generic_loop() {
     for _ in 0..3 {
         use Ins::*;
-        use regs::*;
         let t0 = std::time::Instant::now();
         let cpu_info = cpu_info();
         let res0 = cpu_info.res()[0];
@@ -125,7 +122,6 @@ fn generic_loop() {
 fn generic_load_store() {
     use Ins::*;
     use Type::*;
-    use regs::*;
     let cpu_info = cpu_info();
     let res0 = cpu_info.res()[0];
     let arg0 = cpu_info.args()[0];
@@ -150,7 +146,6 @@ fn generic_load_store() {
 fn generic_regreg() {
     use Ins::*;
     use Type::*;
-    use regs::*;
     let mut a = [100_i64, 200, 15, 4, 1, -1, -1, -1, 123, -12300, -12300];
     let mut b = [  1_i64,   1,  3, 9, 9, 1, 1, 1, 100, 100, 100];
     let expected = [
@@ -244,7 +239,6 @@ fn generic_regreg() {
 fn generic_regimm() {
     use Ins::*;
     use Type::*;
-    use regs::*;
     let mut a = [100_i64, 200, 15, 4, 1, -1, -1, -1, 123, -12300, -12300];
     let mut b = [  1_i64,   1,  3, 9, 9, 1, 1, 1, 100, 100, 100];
     let expected = [
@@ -326,7 +320,6 @@ fn generic_regimm() {
 fn generic_call0() {
     use Ins::*;
     use Type::*;
-    use regs::*;
 
     fn hello_world() {
         println!("hello world!");
@@ -348,7 +341,6 @@ fn generic_call0() {
 fn alloc_save() {
     use Ins::*;
     use Type::*;
-    use regs::*;
 
     fn hello_world(x: u64, y: u64) {
         println!("{x:x} {y:x}");
@@ -394,7 +386,6 @@ fn alloc_save() {
 fn alloc_scratch() {
     use Ins::*;
     use Type::*;
-    use regs::*;
 
     fn hello_world(x: u64) {
         println!("hello world! {x}");
