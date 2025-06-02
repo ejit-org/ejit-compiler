@@ -1,4 +1,4 @@
-use crate::{Executable, Ins, Type, Vsize, R};
+use crate::{x86_64, CpuLevel, Executable, Ins, Type, Vsize, R};
 
 use super::regs;
 
@@ -6,7 +6,8 @@ use super::regs;
 fn test_add() {
     use regs::*;
     use Ins::*;
-    let prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         Add(RAX, RAX, RAX.into()),
         Add(RAX, RAX, RCX.into()),
         Add(RAX, RAX, RDX.into()),
@@ -58,7 +59,7 @@ fn test_add() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=48+01+c0+48+01+c8+48+01+d0+48+01+d8+48+01+e0+48+01+e8+48+01+f0+48+01+f8+4c+01+c0+4c+01+c8+4c+01+d0+4c+01+d8+4c+01+e0+4c+01+e8+4c+01+f0+4c+01+f8+48+01+c0+48+89+c8+48+01+c0+48+89+d0+48+01+c0+48+89+d8+48+01+c0+48+89+e0+48+01+c0+48+89+e8+48+01+c0+48+89+f0+48+01+c0+48+89+f8+48+01+c0+4c+89+c0+48+01+c0+4c+89+c8+48+01+c0+4c+89+d0+48+01+c0+4c+89+d8+48+01+c0+4c+89+e0+48+01+c0+4c+89+e8+48+01+c0+4c+89+f0+48+01+c0+4c+89+f8+48+01+c0+48+01+c0+48+89+c1+48+01+c1+48+89+c2+48+01+c2+48+89+c3+48+01+c3+48+89+c4+48+01+c4+48+89+c5+48+01+c5+48+89+c6+48+01+c6+48+89+c7+48+01+c7+49+89+c0+49+01+c0+49+89+c1+49+01+c1+49+89+c2+49+01+c2+49+89+c3+49+01+c3+49+89+c4+49+01+c4+49+89+c5+49+01+c5+49+89+c6+49+01+c6+49+89+c7+49+01+c7&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 
@@ -69,7 +70,8 @@ fn test_add() {
 fn test_binary_regs() {
     use regs::*;
     use Ins::*;
-    let prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         Sub(RAX, RAX, RAX.into()),
         Sub(RAX, RAX, RCX.into()),
         Sub(RAX, RAX, RDX.into()),
@@ -121,7 +123,7 @@ fn test_binary_regs() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=48+29+c0+48+29+c8+48+29+d0+48+29+d8+48+29+e0+48+29+e8+48+29+f0+48+29+f8+4c+29+c0+4c+29+c8+4c+29+d0+4c+29+d8+4c+29+e0+4c+29+e8+4c+29+f0+4c+29+f8+48+29+c0+48+89+c8+48+29+c0+48+89+d0+48+29+c0+48+89+d8+48+29+c0+48+89+e0+48+29+c0+48+89+e8+48+29+c0+48+89+f0+48+29+c0+48+89+f8+48+29+c0+4c+89+c0+48+29+c0+4c+89+c8+48+29+c0+4c+89+d0+48+29+c0+4c+89+d8+48+29+c0+4c+89+e0+48+29+c0+4c+89+e8+48+29+c0+4c+89+f0+48+29+c0+4c+89+f8+48+29+c0+48+29+c0+48+89+c1+48+29+c1+48+89+c2+48+29+c2+48+89+c3+48+29+c3+48+89+c4+48+29+c4+48+89+c5+48+29+c5+48+89+c6+48+29+c6+48+89+c7+48+29+c7+49+89+c0+49+29+c0+49+89+c1+49+29+c1+49+89+c2+49+29+c2+49+89+c3+49+29+c3+49+89+c4+49+29+c4+49+89+c5+49+29+c5+49+89+c6+49+29+c6+49+89+c7+49+29+c7&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 
@@ -133,7 +135,8 @@ fn test_shift_ecx() {
     // We need to save ECX if the dest is not ecx.
     use regs::*;
     use Ins::*;
-    let prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         Shl(RAX, RAX, RAX.into()),
         Shl(RAX, RAX, RCX.into()),
         Shl(RAX, RCX, RAX.into()),
@@ -145,7 +148,7 @@ fn test_shift_ecx() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=51+48+89+c1+48+d3+e0+59+51+48+d3+e0+59+51+48+89+c8+48+89+c1+48+d3+e0+59+51+48+89+c8+48+d3+e0+59+48+89+c1+48+89+c1+48+d3+e1+48+89+c1+48+d3+e1+48+89+c1+48+d3+e1+48+d3+e1&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 
@@ -157,7 +160,8 @@ fn test_div_eax() {
     // We may need to save EAX, EDX
     use regs::*;
     use Ins::*;
-    let prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         Udiv(RBX, RBX, RBX.into()),
         Udiv(RBX, RBX, RAX.into()),
         Udiv(RBX, RAX, RBX.into()),
@@ -177,7 +181,7 @@ fn test_div_eax() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=50+52+48+89+d8+31+d2+48+f7+f3+48+89+c3+5a+58+50+52+50+48+89+d8+31+d2+48+f7+34+24+48+89+c3+48+83+c4+08+5a+58+50+52+31+d2+48+f7+f3+48+89+c3+5a+58+50+52+50+31+d2+48+f7+34+24+48+89+c3+48+83+c4+08+5a+58+52+48+89+d8+31+d2+48+f7+f3+5a+52+50+48+89+d8+31+d2+48+f7+34+24+48+83+c4+08+5a+52+31+d2+48+f7+f3+5a+50+52+48+89+d0+31+d2+48+f7+34+24+48+89+c2+48+83+c4+08+58+50+52+48+89+d8+31+d2+48+f7+f3+48+89+c3+5a+58+50+52+52+48+89+d8+31+d2+48+f7+34+24+48+89+c3+48+83+c4+08+5a+58+50+52+48+89+d0+31+d2+48+f7+f3+48+89+c3+5a+58+50+52+52+48+89+d0+31+d2+48+f7+34+24+48+89+c3+48+83+c4+08+5a+58+50+48+89+d8+31+d2+48+f7+f3+48+89+c2+58+50+52+48+89+d8+31+d2+48+f7+34+24+48+89+c2+48+83+c4+08+58+50+48+89+d0+31+d2+48+f7+f3+48+89+c2+58+50+52+48+89+d0+31+d2+48+f7+34+24+48+89+c2+48+83+c4+08+58&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 
@@ -188,7 +192,8 @@ fn test_div_eax() {
 fn test_shift_regs() {
     use regs::*;
     use Ins::*;
-    let prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         Shl(RAX, RAX, RAX.into()),
         Shl(RAX, RAX, RDI.into()),
         Shl(RAX, RAX, R15.into()),
@@ -199,7 +204,7 @@ fn test_shift_regs() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=51+48+89+c1+48+d3+e0+59+51+48+89+f9+48+d3+e0+59+51+4c+89+f9+48+d3+e0+59+51+48+89+f8+48+89+c1+48+d3+e0+59+51+4c+89+f8+48+89+c1+48+d3+e0+59+51+48+89+c7+48+89+c1+48+d3+e7+59+51+49+89+c7+48+89+c1+49+d3+e7+59&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 
@@ -210,7 +215,8 @@ fn test_shift_regs() {
 fn test_binary() {
     use regs::*;
     use Ins::*;
-    let prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         Add(RAX, RAX, RAX.into()),
         Sub(RAX, RAX, RAX.into()),
         And(RAX, RAX, RAX.into()),
@@ -225,7 +231,7 @@ fn test_binary() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=48+01+c0+48+29+c0+48+21+c0+48+09+c0+48+31+c0+51+48+89+c1+48+d3+e0+59+51+48+89+c1+48+d3+e8+59+51+48+89+c1+48+d3+f8+59+48+0f+af+c0+52+50+31+d2+48+f7+34+24+48+83+c4+08+5a+52+50+48+99+48+f7+3c+24+48+83+c4+08+5a&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 
@@ -236,7 +242,8 @@ fn test_binary() {
 fn test_vld() {
     use regs::*;
     use Ins::*;
-    let prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         Vld(Type::S8, Vsize::V128, R(0), RAX, 0),
         Vld(Type::S8, Vsize::V128, R(0), RCX, 0),
         Vld(Type::S8, Vsize::V128, R(1), RAX, 0),
@@ -252,7 +259,7 @@ fn test_vld() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=c5+f8+10+80+00+00+00+00+c5+f8+10+81+00+00+00+00+c5+f8+10+88+00+00+00+00+c4+c1+78+10+80+00+00+00+00+c5+78+10+80+00+00+00+00+c4+41+78+10+8a+00+00+00+00+c5+fc+10+80+00+00+00+00+c5+fc+10+81+00+00+00+00+c5+fc+10+88+00+00+00+00+c4+c1+7c+10+80+00+00+00+00+c5+7c+10+80+00+00+00+00+c4+41+7c+10+8a+00+00+00+00&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 }
@@ -261,7 +268,8 @@ fn test_vld() {
 fn test_vst() {
     use regs::*;
     use Ins::*;
-    let prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         Vst(Type::S8, Vsize::V128, R(0), RAX, 0),
         Vst(Type::S8, Vsize::V128, R(0), RCX, 0),
         Vst(Type::S8, Vsize::V128, R(1), RAX, 0),
@@ -277,7 +285,7 @@ fn test_vst() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=c5+f8+11+80+00+00+00+00+c5+f8+11+81+00+00+00+00+c5+f8+11+88+00+00+00+00+c4+c1+78+11+80+00+00+00+00+c5+78+11+80+00+00+00+00+c4+41+78+11+8a+00+00+00+00+c5+fc+11+80+00+00+00+00+c5+fc+11+81+00+00+00+00+c5+fc+11+88+00+00+00+00+c4+c1+7c+11+80+00+00+00+00+c5+7c+11+80+00+00+00+00+c4+41+7c+11+8a+00+00+00+00&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 }
@@ -287,7 +295,8 @@ fn test_modrm() {
     use regs::*;
     use Ins::*;
     use Type::*;
-    let mut prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         St(U8, RAX, RAX, 0),
         St(U8, RAX, RSP, 0),
         St(U8, RAX, RBP, 0),
@@ -304,10 +313,11 @@ fn test_modrm() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=40+88+00+40+88+04+24+40+88+45+00+41+88+04+24+41+88+45+00+41+88+07+40+88+00+40+88+24+24+40+88+6d+00+45+88+24+24+45+88+6d+00+45+88+3f+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
-    let mut prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         St(U8, RAX, RAX, 1),
         St(U8, RAX, RSP, 1),
         St(U8, RAX, RBP, 1),
@@ -324,10 +334,11 @@ fn test_modrm() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=40+88+40+01+40+88+44+24+01+40+88+45+01+41+88+44+24+01+41+88+45+01+41+88+47+01+40+88+40+01+40+88+64+24+01+40+88+6d+01+45+88+64+24+01+45+88+6d+01+45+88+7f+01+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
-    let mut prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         St(U8, RAX, RAX, 128),
         St(U8, RAX, RSP, 128),
         St(U8, RAX, RBP, 128),
@@ -344,7 +355,7 @@ fn test_modrm() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=40+88+80+80+00+00+00+40+88+84+24+80+00+00+00+40+88+85+80+00+00+00+41+88+84+24+80+00+00+00+41+88+85+80+00+00+00+41+88+87+80+00+00+00+40+88+80+80+00+00+00+40+88+a4+24+80+00+00+00+40+88+ad+80+00+00+00+45+88+a4+24+80+00+00+00+45+88+ad+80+00+00+00+45+88+bf+80+00+00+00+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 }
@@ -354,7 +365,8 @@ fn test_stb() {
     use regs::*;
     use Ins::*;
     use Type::*;
-    let mut prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         St(U8, RAX, RAX, 0),
         St(U8, RAX, RSP, 0),
         St(U8, RAX, RBP, 0),
@@ -371,7 +383,7 @@ fn test_stb() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=40+88+00+40+88+04+24+40+88+45+00+41+88+04+24+41+88+45+00+41+88+07+40+88+00+40+88+24+24+40+88+6d+00+45+88+24+24+45+88+6d+00+45+88+3f+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 }
@@ -381,7 +393,8 @@ fn test_stw() {
     use regs::*;
     use Ins::*;
     use Type::*;
-    let mut prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         St(U16, RAX, RAX, 0),
         St(U16, RAX, RSP, 0),
         St(U16, RAX, RBP, 0),
@@ -398,7 +411,7 @@ fn test_stw() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=66+40+89+00+66+40+89+04+24+66+40+89+45+00+66+41+89+04+24+66+41+89+45+00+66+41+89+07+66+40+89+00+66+40+89+24+24+66+40+89+6d+00+66+45+89+24+24+66+45+89+6d+00+66+45+89+3f+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 }
@@ -408,7 +421,8 @@ fn test_std() {
     use regs::*;
     use Ins::*;
     use Type::*;
-    let mut prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         St(U32, RAX, RAX, 0),
         St(U32, RAX, RSP, 0),
         St(U32, RAX, RBP, 0),
@@ -425,7 +439,7 @@ fn test_std() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=40+89+00+40+89+04+24+40+89+45+00+41+89+04+24+41+89+45+00+41+89+07+40+89+00+40+89+24+24+40+89+6d+00+45+89+24+24+45+89+6d+00+45+89+3f+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 }
@@ -435,7 +449,8 @@ fn test_stq() {
     use regs::*;
     use Ins::*;
     use Type::*;
-    let mut prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         St(U64, RAX, RAX, 0),
         St(U64, RAX, RSP, 0),
         St(U64, RAX, RBP, 0),
@@ -452,7 +467,7 @@ fn test_stq() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=48+89+00+48+89+04+24+48+89+45+00+49+89+04+24+49+89+45+00+49+89+07+48+89+00+48+89+24+24+48+89+6d+00+4d+89+24+24+4d+89+6d+00+4d+89+3f+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 }
@@ -462,7 +477,8 @@ fn test_ld() {
     use regs::*;
     use Ins::*;
     use Type::*;
-    let mut prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         Ld(U8, RCX, RSI, 0),
         Ld(U16, RCX, RSI, 0),
         Ld(U32, RCX, RSI, 0),
@@ -475,7 +491,7 @@ fn test_ld() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=48+0f+b6+0e+66+48+0f+b7+0e+40+8b+0e+48+8b+08+48+0f+be+0e+66+48+0f+bf+0e+48+63+0e+48+8b+08+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 
@@ -487,7 +503,8 @@ fn test_vpadd() {
     use Ins::*;
     use Type::*;
     use Vsize::*;
-    let mut prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         Vadd(U8, V128, R(0), R(0), R(0).into()),
         Vadd(U16, V128, R(0), R(0), R(0).into()),
         Vadd(U32, V128, R(0), R(0), R(0).into()),
@@ -505,7 +522,7 @@ fn test_vpadd() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=c5+f9+fc+c0+c5+f9+fd+c0+c5+f9+fe+c0+c5+f9+d4+c0+c5+f8+58+c0+c5+f9+58+c0+c5+f9+fc+c0+c5+79+fc+f8+c5+81+fc+c0+c4+c1+79+fc+c7+c5+e9+fc+cb+c5+fd+fc+c0+c4+c1+7d+fc+c7+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 }
@@ -516,7 +533,8 @@ fn test_vpaddi() {
     use Ins::*;
     use Type::*;
     use Vsize::*;
-    let mut prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         Vadd(U8, V128, R(1), R(15), 0x12.into()),
         Vadd(U16, V128, R(1), R(15), 0x1234.into()),
         Vadd(U32, V128, R(1), R(15), 0x12345678.into()),
@@ -527,7 +545,7 @@ fn test_vpaddi() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=c5+f9+fc+0d+29+00+00+00+c5+f9+fd+0d+31+00+00+00+c5+f9+fe+0d+39+00+00+00+c5+f9+d4+0d+41+00+00+00+c5+f8+58+0d+49+00+00+00+c5+f9+58+0d+51+00+00+00+c3+12+12+12+12+12+12+12+12+12+12+12+12+12+12+12+12+34+12+34+12+34+12+34+12+34+12+34+12+34+12+34+12+78+56+34+12+78+56+34+12+78+56+34+12+78+56+34+12+f0+de+bc+9a+78+56+34+12+f0+de+bc+9a+78+56+34+12+00+00+80+3f+00+00+80+3f+00+00+80+3f+00+00+80+3f+00+00+00+00+00+00+f0+3f+00+00+00+00+00+00+f0+3f&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 }
@@ -538,7 +556,8 @@ fn test_vpsub() {
     use Ins::*;
     use Type::*;
     use Vsize::*;
-    let mut prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         Vsub(U8, V128, R(0), R(0), R(0).into()),
         Vsub(U16, V128, R(0), R(0), R(0).into()),
         Vsub(U32, V128, R(0), R(0), R(0).into()),
@@ -556,7 +575,7 @@ fn test_vpsub() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=c5+f9+f8+c0+c5+f9+f9+c0+c5+f9+fa+c0+c5+f9+fb+c0+c5+f8+5c+c0+c5+f9+5c+c0+c5+f9+f8+c0+c5+79+f8+f8+c5+81+f8+c0+c4+c1+79+f8+c7+c5+e9+f8+cb+c5+fd+f8+c0+c4+c1+7d+f8+c7+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 }
@@ -567,7 +586,8 @@ fn test_vandorxor() {
     use Ins::*;
     use Type::*;
     use Vsize::*;
-    let mut prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         Vand(U8, V128, R(1), R(2), R(3).into()),
         Vor(U8, V128, R(1), R(2), R(3).into()),
         Vxor(U8, V128, R(1), R(2), R(3).into()),
@@ -578,7 +598,7 @@ fn test_vandorxor() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=c5+e9+db+cb+c5+e9+eb+cb+c5+e9+ef+cb+c5+ed+db+cb+c5+ed+eb+cb+c5+ed+ef+cb+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 }
@@ -589,7 +609,8 @@ fn test_vshift() {
     use Ins::*;
     use Type::*;
     use Vsize::*;
-    let mut prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         Vshl(U32, V128, R(1), R(2), R(3).into()),
         Vshr(S32, V128, R(1), R(2), R(3).into()),
         Vshr(U32, V128, R(1), R(2), R(3).into()),
@@ -600,7 +621,7 @@ fn test_vshift() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=c5+e9+f2+cb+c5+e9+e2+cb+c5+e9+d2+cb+c5+ed+f2+cb+c5+ed+e2+cb+c5+ed+d2+cb+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 }
@@ -611,7 +632,8 @@ fn test_vmul() {
     use Ins::*;
     use Type::*;
     use Vsize::*;
-    let mut prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         Vmul(F32, V128, R(1), R(2), R(3).into()),
         Vmul(F64, V128, R(1), R(2), R(3).into()),
         Vmul(F32, V256, R(1), R(2), R(3).into()),
@@ -620,7 +642,7 @@ fn test_vmul() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=c5+e8+59+cb+c5+e9+59+cb+c5+ec+59+cb+c5+ed+59+cb+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 }
@@ -631,7 +653,8 @@ fn test_vmovi() {
     use Ins::*;
     use Type::*;
     use Vsize::*;
-    let mut prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         Vmov(U8, V128, R(15), 0x12.into()),
         Vmov(U16, V128, R(15), 0x1234.into()),
         Vmov(U32, V128, R(15), 0x12345678.into()),
@@ -642,7 +665,7 @@ fn test_vmovi() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=c5+78+10+3d+29+00+00+00+c5+78+10+3d+31+00+00+00+c5+78+10+3d+39+00+00+00+c5+78+10+3d+41+00+00+00+c5+78+10+3d+49+00+00+00+c5+78+10+3d+51+00+00+00+c3+12+12+12+12+12+12+12+12+12+12+12+12+12+12+12+12+34+12+34+12+34+12+34+12+34+12+34+12+34+12+34+12+78+56+34+12+78+56+34+12+78+56+34+12+78+56+34+12+f0+de+bc+9a+78+56+34+12+f0+de+bc+9a+78+56+34+12+00+00+80+3f+00+00+80+3f+00+00+80+3f+00+00+80+3f+00+00+00+00+00+00+f0+3f+00+00+00+00+00+00+f0+3f&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 }
@@ -653,7 +676,8 @@ fn test_vmov() {
     use Ins::*;
     use Type::*;
     use Vsize::*;
-    let mut prog = Executable::from_ir(&[
+    let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
+    let prog = Executable::from_ir(&cpu_info, &[
         Vmov(U8, V128, R(0), R(0).into()),
         Vmov(U16, V128, R(0), R(0).into()),
         Vmov(U32, V128, R(0), R(0).into()),
@@ -667,7 +691,7 @@ fn test_vmov() {
     ])
     .unwrap();
     assert_eq!(
-        prog.fmt_url(),
+        prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=c5+f8+10+c0+c5+f8+10+c0+c5+f8+10+c0+c5+f8+10+c0+c5+f8+10+ca+c5+f8+10+d4+c5+f8+10+de+c4+c1+78+10+e0+c4+c1+78+10+ea+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
 }

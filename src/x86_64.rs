@@ -1,5 +1,5 @@
 use crate::{
-    CallInfo, Compiler, CompilerResult, Cond, CpuInfo, CpuLevel, EntryInfo, Error, Executable, Fixup, Ins, RegClass, Scale, Src, State, Type, Vsize, R
+    CallInfo, Compiler, CompilerResult, Cond, CpuInfo, CpuLevel, EntryInfo, Error, Executable, Fixup, Ins, RegClass, RegInfo, Scale, Src, State, Type, Vsize, R
 };
 
 pub mod regs {
@@ -22,22 +22,22 @@ pub mod regs {
     pub const R14: R = R(14);
     pub const R15: R = R(15);
 
-    pub const XMM0: R = R(32+0);
-    pub const XMM1: R = R(32+1);
-    pub const XMM2: R = R(32+2);
-    pub const XMM3: R = R(32+3);
-    pub const XMM4: R = R(32+4);
-    pub const XMM5: R = R(32+5);
-    pub const XMM6: R = R(32+6);
-    pub const XMM7: R = R(32+7);
-    pub const XMM8: R = R(32+8);
-    pub const XMM9: R = R(32+9);
-    pub const XMM10: R = R(32+10);
-    pub const XMM11: R = R(32+11);
-    pub const XMM12: R = R(32+12);
-    pub const XMM13: R = R(32+13);
-    pub const XMM14: R = R(32+14);
-    pub const XMM15: R = R(32+15);
+    pub const XMM0: R = R(16+0);
+    pub const XMM1: R = R(16+1);
+    pub const XMM2: R = R(16+2);
+    pub const XMM3: R = R(16+3);
+    pub const XMM4: R = R(16+4);
+    pub const XMM5: R = R(16+5);
+    pub const XMM6: R = R(16+6);
+    pub const XMM7: R = R(16+7);
+    pub const XMM8: R = R(16+8);
+    pub const XMM9: R = R(16+9);
+    pub const XMM10: R = R(16+10);
+    pub const XMM11: R = R(16+11);
+    pub const XMM12: R = R(16+12);
+    pub const XMM13: R = R(16+13);
+    pub const XMM14: R = R(16+14);
+    pub const XMM15: R = R(16+15);
 
     pub const YMM0: R = XMM0;
     pub const YMM1: R = XMM1;
@@ -277,9 +277,50 @@ const OP_PFX_66: u8 = 0x66;
 const OP_JMP: u8 = 0xe9;
 const OP_CALL: u8 = 0xe8;
 
-/// A simlified CPU level specification.
+const REG_INFO : &[RegInfo] = &[
+    // rax-rdi
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(0), ret: Some(0), name: "rax" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(1), ret: Some(1), name: "rcx" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(2), ret: Some(2), name: "rdx" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(3), ret: Some(3), name: "rbx" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: true, arg: Some(4), ret: Some(4), name: "rsp" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(5), ret: Some(5), name: "rbp" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(6), ret: Some(6), name: "rsi" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(7), ret: Some(7), name: "rdi" },
+    // r8-r15
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: None, ret: None, name: "r8" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "r9" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "r10" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "r11" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "r12" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "r13" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "r14" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "r15" },
+
+    // xmm0-xmm7
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(0), ret: Some(0), name: "xmm0" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(1), ret: Some(1), name: "xmm1" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(2), ret: Some(2), name: "xmm2" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(3), ret: Some(3), name: "xmm3" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(4), ret: Some(4), name: "xmm4" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(5), ret: Some(5), name: "xmm5" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(6), ret: Some(6), name: "xmm6" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(7), ret: Some(7), name: "xmm7" },
+    // xmm8-xmm15
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "xmm8" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "xmm9" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "xmm10" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "xmm11" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "xmm12" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "xmm13" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "xmm14" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "xmm15" },
+];
+
 #[cfg(target_arch = "x86_64")]
-pub fn cpu_info() -> CpuInfo {
+pub fn native_cpu_info() -> CpuInfo {
+    use crate::aarch64::cpu_info;
+
     let cpu_level = if !is_x86_feature_detected!("sse")
         || !is_x86_feature_detected!("sse2")
         || !is_x86_feature_detected!("sse3")
@@ -308,14 +349,21 @@ pub fn cpu_info() -> CpuInfo {
     } else {
         CpuLevel::Simd512
     };
+    cpu_info(cpu_level)
+}
 
+pub fn cpu_info(cpu_level: CpuLevel) -> CpuInfo {
     // pre-allocate SP
     let alloc0 = 1 << RSP.0;
     // Note for avx512, we will have 32 vector registers.
 
+    let compiler = Box::new(X86_64Compiler);
+
     use regs::*;
     CpuInfo {
         cpu_level,
+        compiler,
+        reg_info: REG_INFO,
         alloc: [alloc0, 0],
         args: Box::from(&[RDI, RSI, RDX, RCX, R8, R9][..]),
         res: Box::from(&[RAX, RDX][..]),
@@ -337,9 +385,7 @@ pub fn cpu_info() -> CpuInfo {
     }
 }
 
-struct X86_64Compiler {
-
-}
+struct X86_64Compiler;
 
 impl Compiler for X86_64Compiler {
     fn compile(&self, ins: &[Ins], cpu_info: &CpuInfo) -> Result<CompilerResult, Error> {

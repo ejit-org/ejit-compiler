@@ -301,6 +301,7 @@ pub struct RegInfo {
     pub special: bool,
     pub arg: Option<usize>,
     pub ret: Option<usize>,
+    pub name: &'static str,
 }
 
 pub struct CpuInfo {
@@ -804,9 +805,9 @@ pub struct Executable {
 }
 
 impl Executable {
-    fn from_ir(ins: &[Ins]) -> Result<Self, Error> {
-        // let res = cpu_info.compiler.compile(ins)?;
-        todo!();
+    fn from_ir(cpu_info: &CpuInfo, ins: &[Ins]) -> Result<Self, Error> {
+        let res = cpu_info.compiler.compile(ins, cpu_info)?;
+        Ok(Self::new(&res.code, res.labels))
     }
 
     fn new(code: &[u8], labels: Vec<(u32, usize)>) -> Self {
@@ -879,18 +880,16 @@ impl Executable {
         self.to_bytes().chunks_exact(4).map(|c| format!("{:08x}", u32::from_be_bytes(c.try_into().unwrap()))).collect::<Vec<String>>().join(" ")
     }
 
-    pub fn fmt_url(&self) -> String {
-        #[cfg(target_arch = "aarch64")]
-        {
-            let opcodes = self.to_bytes().chunks_exact(4).map(|c| format!("{:08x}", u32::from_be_bytes(c.try_into().unwrap()))).collect::<Vec<String>>().join("+");
-            format!("https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes={opcodes}&arch=arm64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly")
-        }
-        #[cfg(target_arch = "x86_64")]
-        {
-            let opcodes = self.to_bytes().iter().map(|c| format!("{c:02x}")).collect::<Vec<String>>().join("+");
-            format!("https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes={opcodes}&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly")
-        }
+    pub fn fmt_x86_url(&self) -> String {
+        let opcodes = self.to_bytes().iter().map(|c| format!("{c:02x}")).collect::<Vec<String>>().join("+");
+        format!("https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes={opcodes}&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly")
     }
+
+    pub fn fmt_arm_url(&self) -> String {
+        let opcodes = self.to_bytes().chunks_exact(4).map(|c| format!("{:08x}", u32::from_be_bytes(c.try_into().unwrap()))).collect::<Vec<String>>().join("+");
+        format!("https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes={opcodes}&arch=arm64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly")
+    }
+
 }
 
 impl std::fmt::Debug for Executable {

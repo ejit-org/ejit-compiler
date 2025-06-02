@@ -79,86 +79,87 @@ pub mod regs {
 // https://en.wikipedia.org/wiki/Calling_convention
 const REG_INFO : &[RegInfo] = &[
     // x0-x7
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(0), ret: Some(0) },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(1), ret: Some(1) },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(2), ret: Some(2) },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(3), ret: Some(3) },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(4), ret: Some(4) },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(5), ret: Some(5) },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(6), ret: Some(6) },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(7), ret: Some(7) },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(0), ret: Some(0), name: "x0" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(1), ret: Some(1), name: "x1" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(2), ret: Some(2), name: "x2" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(3), ret: Some(3), name: "x3" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(4), ret: Some(4), name: "x4" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(5), ret: Some(5), name: "x5" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(6), ret: Some(6), name: "x6" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(7), ret: Some(7), name: "x7" },
     // x8-x15
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: true, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: true, arg: None, ret: None, name: "x8" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "x9" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "x10" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "x11" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "x12" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "x13" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "x14" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "x15" },
     // x16-x23
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: true, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: None, ret: None, name: "x16" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: None, ret: None, name: "x17" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: true, arg: None, ret: None, name: "x18" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x19" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x20" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x21" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x22" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x23" },
     // x24-x31
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: false, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: false, special: true, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: false, special: true, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x24" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x25" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x26" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x27" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x28" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: false, special: false, arg: None, ret: None, name: "x29" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: false, special: true, arg: None, ret: None, name: "x30" },
+    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: false, special: true, arg: None, ret: None, name: "x31" },
 
     // v0-v7
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(0), ret: Some(0) },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(1), ret: Some(1) },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(2), ret: Some(2) },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(3), ret: Some(3) },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(4), ret: Some(4) },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(5), ret: Some(5) },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(6), ret: Some(6) },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(7), ret: Some(7) },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(0), ret: Some(0), name: "v0" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(1), ret: Some(1), name: "v1" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(2), ret: Some(2), name: "v2" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(3), ret: Some(3), name: "v3" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(4), ret: Some(4), name: "v4" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(5), ret: Some(5), name: "v5" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(6), ret: Some(6), name: "v6" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(7), ret: Some(7), name: "v7" },
     // v8-v15
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "v8" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "v9" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "v10" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "v11" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "v12" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "v13" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "v14" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "v15" },
     // v16-v23
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v16" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v17" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v18" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v19" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v20" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v21" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v22" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v23" },
     // v24-v31
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v24" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v25" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v26" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v27" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v28" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v29" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v30" },
+    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v31" },
 ];
 
-/// A simlified CPU level specification.
-pub fn cpu_info() -> CpuInfo {
-    // TODO:
-    let cpu_level = CpuLevel::Simd128;
+pub fn native_cpu_info() -> CpuInfo {
+    cpu_info(CpuLevel::Simd128)
+}
 
-    let compiler = Aarch64Compiler{};
+/// A simlified CPU level specification.
+pub fn cpu_info(cpu_level: CpuLevel) -> CpuInfo {
+    let compiler = Aarch64Compiler;
 
     // pre-allocate SP
     let alloc0 = 1 << SP.0;
@@ -251,9 +252,7 @@ impl Cond {
     }
 }
 
-struct Aarch64Compiler {
-
-}
+struct Aarch64Compiler;
 
 impl Compiler for Aarch64Compiler {
     fn compile(&self, ins: &[Ins], cpu_info: &CpuInfo) -> Result<CompilerResult, Error> {
@@ -1126,7 +1125,7 @@ pub mod gen {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Cond, Executable, Ins};
+    use crate::{x86_64::cpu_info, Cond, Executable, Ins};
 
     use super::{bitconst, regs};
 
@@ -1134,7 +1133,8 @@ mod tests {
     fn test_binary() {
         use regs::*;
         use Ins::*;
-        let prog = Executable::from_ir(&[
+        let cpu_info = cpu_info(crate::CpuLevel::Simd512);
+        let prog = Executable::from_ir(&cpu_info, &[
             Add(X1, X2, X3.into()),
             Sub(X1, X2, X3.into()),
             Adc(X1, X2, X3.into()),
@@ -1179,7 +1179,7 @@ mod tests {
         ])
         .unwrap();
         assert_eq!(
-            prog.fmt_url(),
+            prog.fmt_arm_url(),
             "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=410003ab+410003eb+410003ba+410003fa+410003ea+410003aa+410003ca+4120c39a+4124c39a+4128c39a+417c039b+4108c39a+410cc39a+410000b1+410000f1+41001fba+41001ffa+41001fea+41001faa+41001fca+4120df9a+4124df9a+4128df9a+417c1f9b+4108df9a+410cdf9a+418c04b1+418c04f1+08030058+410008ba+c8020058+410008fa+88020058+410008ea+48020058+410008aa+08020058+410008ca+c8010058+4120c89a+88010058+4124c89a+48010058+4128c89a+08010058+417c089b+c8000058+4108c89a+88000058+410cc89a+418c44b1+418c44f1+23010000+00000000&arch=arm64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
         );
     }
@@ -1188,7 +1188,8 @@ mod tests {
     fn test_unary() {
         use regs::*;
         use Ins::*;
-        let prog = Executable::from_ir(&[
+        let cpu_info = cpu_info(crate::CpuLevel::Simd512);
+        let prog = Executable::from_ir(&cpu_info, &[
             Mov(X1, X2.into()),
             Not(X1, X2.into()),
             Neg(X1, X2.into()),
@@ -1200,7 +1201,7 @@ mod tests {
         ])
         .unwrap();
         assert_eq!(
-            prog.fmt_url(),
+            prog.fmt_arm_url(),
             "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=e10302aa+e10322aa+e10302cb+3f0002eb+a1000058+c1000058+e1000058+48000058+3f0008eb+7b000000+00000000+84ffffff+ffffffff+85ffffff+ffffffff&arch=arm64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
         );
     }
@@ -1210,7 +1211,8 @@ mod tests {
         use regs::*;
         use Ins::*;
         use Cond::*;
-        let prog = Executable::from_ir(&[
+        let cpu_info = cpu_info(crate::CpuLevel::Simd512);
+        let prog = Executable::from_ir(&cpu_info, &[
             Addr(X1, 1),
             Addr(X1, 1),
             Label(1),
@@ -1240,7 +1242,7 @@ mod tests {
         ])
         .unwrap();
         assert_eq!(
-            prog.fmt_url(),
+            prog.fmt_arm_url(),
             "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=41000010+21000010+01000010+e1ffff10+20003fd6+20001fd6+02000014+01000014+00000014+ffffff17+a0000054+81000054+6c000054+4a000054+2b000054+0d000054+e8ffff54+c2ffff54+a3ffff54+89ffff54&arch=arm64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
         );
     }
