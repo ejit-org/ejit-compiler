@@ -29,10 +29,6 @@ impl CompilerResult {
     }
 }
 
-pub trait Compiler {
-    fn compile(&self, ins: &[Ins], cpu_info: &CpuInfo) -> Result<CompilerResult, Error>;
-}
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Imm(pub u64);
 
@@ -307,8 +303,6 @@ pub struct RegInfo {
 pub struct CpuInfo {
     cpu_level: CpuLevel,
 
-    compiler: Box<dyn Compiler>,
-
     reg_info: &'static [RegInfo],
 
     alloc: [u128; 2],
@@ -541,16 +535,16 @@ enum Fixup {
     PcRel4(PcRel4),
 }
 
-struct State<'c> {
+struct State {
     code: Vec<u8>,
     labels: Vec<(u32, usize)>,
     constants: Vec<u8>,
     fixups: Vec<(usize, Fixup)>,
-    cpu_info: &'c CpuInfo,
+    cpu_info: CpuInfo,
 }
 
-impl<'c> State<'c> {
-    fn constant(&mut self, c: &[u8]) -> usize {
+impl State {
+    pub fn constant(&mut self, c: &[u8]) -> usize {
         if let Some(pos) = self.constants.windows(c.len()).position(|w| w == c) {
             pos
         } else {
@@ -558,6 +552,79 @@ impl<'c> State<'c> {
             self.constants.extend(c);
             pos
         }
+    }
+
+    pub fn do_fixups(&mut self, cbase: usize) -> Result<(), Error> {
+        // TODO: make all fixups generic.
+        for (loc, f) in &self.fixups {
+            let loc = *loc;
+            let opcode: u32 = u32::from_le_bytes(self.code[loc..loc + 4].try_into().unwrap());
+            match f {
+                Fixup::Adr(dest, label) => {
+                    if let Some((_, offset)) = self.labels.iter().find(|(n, _)| n == label) {
+                        let delta = *offset as isize - loc as isize;
+                        if delta < -(1 << 20) || delta >= (1 << 20) {
+                            return Err(Error::InvalidOffset);
+                        }
+                        let immhi = ((delta >> 2) & (1 << 19) - 1) as u32;
+                        let immlo = (delta & 3) as u32;
+                        // https://developer.arm.com/documentation/ddi0602/2025-03/Base-Instructions/ADR--Form-PC-relative-address-?lang=en
+                        let opcode = opcode | immlo << 29 | immhi << 5;
+                        self.code[loc..loc + 4].copy_from_slice(&opcode.to_le_bytes());
+                    } else {
+                        return Err(Error::MissingLabel(*label));
+                    }
+                }
+                Fixup::B(cond, label) => {
+                    unimplemented!()
+                }
+                Fixup::Label(label, delta) => {
+                    unimplemented!()
+                }
+                Fixup::Const(pos, delta) => {
+                    let opcode: u32 =
+                        u32::from_le_bytes(self.code[loc..loc + 4].try_into().unwrap());
+                    let offset: i32 = ((cbase + pos) as isize - loc as isize - delta)
+                        .try_into()
+                        .map_err(|_| Error::CodeTooBig)?;
+                    if offset % 4 != 0 || offset < -0x100000 || offset >= 0x100000 {
+                        return Err(Error::InvalidOffset);
+                    }
+                    let offset = ((offset >> 2) & (1 << 19) - 1) as u32;
+                    let opcode = opcode | offset << 5;
+                    self.code[loc..loc + 4].copy_from_slice(&opcode.to_le_bytes());
+                }
+                // eg. sssss:imm19:00 => op | 00000:imm19:00000
+                //     bits=19     rshift                 lshift
+                Fixup::PcRel4(PcRel4{ label, offset, bits, lshift, rshift, delta }) => {
+                    if let Some((_, offset)) = self.labels.iter().find(|(n, _)| n == label) {
+                        let delta = *offset as isize - loc as isize - delta;
+                        if delta < -(1 << bits-1) || delta >= (1 << bits-1) {
+                            return Err(Error::InvalidOffset);
+                        }
+                        if (delta >> rshift << rshift) != delta {
+                            return Err(Error::InvalidOffset);
+                        }
+                        let mask = if *bits >= 32 { !0 } else { (1<<*bits)-1 };
+                        let imm : u32 = ((delta >> rshift) & mask)
+                            .try_into().map_err(|_| Error::InvalidOffset)?;
+                        let opcode = opcode | imm << lshift;
+                        self.code[loc..loc + 4].copy_from_slice(&opcode.to_le_bytes());
+                    } else {
+                        return Err(Error::MissingLabel(*label));
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+    
+    fn new(cpu_info: CpuInfo) -> Self {
+        Self { code: Vec::new(), labels: Vec::new(), constants: Vec::new(), fixups: Vec::new(), cpu_info }
+    }
+    
+    fn into_compiler_result(&mut self) -> CompilerResult {
+        CompilerResult::new(self.code.clone(), self.labels.clone())
     }
 }
 
@@ -616,19 +683,6 @@ impl From<usize> for Box<EntryInfo> {
         })
     }
 }
-
-// impl<T : AsRef<[Src]>> From<(usize, T)> for Box<EntryInfo> {
-//     fn from(v: (usize, T)) -> Self {
-//         let stack_size = v.0;
-//         let args = v.1.as_ref();
-//         let args = Box::from(args);
-//         Box::new(EntryInfo {
-//             saves: None,
-//             args,
-//             stack_size,
-//         })
-//     }
-// }
 
 /// A call to a function including args and scratch registers to be saved.
 #[derive(Debug, Clone, PartialEq)]
@@ -765,6 +819,158 @@ pub enum Ins {
     D(Type, u64),
 }
 
+pub trait Compiler {
+    fn state(&mut self) -> &mut State;
+
+    fn compile(&mut self, ins: &[Ins]) -> Result<CompilerResult, Error> {
+        for i in ins {
+            match i {
+                Ins::Label(value) => self.label(*value),
+                Ins::Enter(entry_info) => self.enter(entry_info),
+                Ins::Leave(entry_info) => self.leave(entry_info),
+                Ins::Addr(r, value) => self.addr(*r, *value),
+                Ins::Ld(ty, r, r1, offset) => self.ld(*ty, *r, *r1, *offset),
+                Ins::St(ty, r, r1, offset) => self.st(*ty, *r, *r1, *offset),
+                Ins::Vld(ty, vsize, r, r1, offset) => self.vld(*ty, *vsize, *r, *r1, *offset),
+                Ins::Vst(ty, vsize, r, r1, offset) => self.vst(*ty, *vsize, *r, *r1, *offset),
+                Ins::Add(r, r1, src) => self.add(*r, *r1, src),
+                Ins::Sub(r, r1, src) => self.sub(*r, *r1, src),
+                Ins::Adc(r, r1, src) => self.adc(*r, *r1, src),
+                Ins::Sbb(r, r1, src) => self.sbb(*r, *r1, src),
+                Ins::And(r, r1, src) => self.and(*r, *r1, src),
+                Ins::Or(r, r1, src) => self.or(*r, *r1, src),
+                Ins::Xor(r, r1, src) => self.xor(*r, *r1, src),
+                Ins::Shl(r, r1, src) => self.shl(*r, *r1, src),
+                Ins::Shr(r, r1, src) => self.shr(*r, *r1, src),
+                Ins::Sar(r, r1, src) => self.sar(*r, *r1, src),
+                Ins::Mul(r, r1, src) => self.mul(*r, *r1, src),
+                Ins::Udiv(r, r1, src) => self.udiv(*r, *r1, src),
+                Ins::Sdiv(r, r1, src) => self.sdiv(*r, *r1, src),
+                Ins::Mov(r, src) => self.mov(*r, src),
+                Ins::Cmp(r, src) => self.cmp(*r, src),
+                Ins::Not(r, src) => self.not(*r, src),
+                Ins::Neg(r, src) => self.neg(*r, src),
+                Ins::Push(src) => self.push(src),
+                Ins::Pop(src) => self.pop(src),
+                Ins::Vadd(ty, vsize, r, r1, src) => self.vadd(*ty, *vsize, *r, *r1, src),
+                Ins::Vsub(ty, vsize, r, r1, src) => self.vsub(*ty, *vsize, *r, *r1, src),
+                Ins::Vand(ty, vsize, r, r1, src) => self.vand(*ty, *vsize, *r, *r1, src),
+                Ins::Vor(ty, vsize, r, r1, src) => self.vor(*ty, *vsize, *r, *r1, src),
+                Ins::Vxor(ty, vsize, r, r1, src) => self.vxor(*ty, *vsize, *r, *r1, src),
+                Ins::Vshl(ty, vsize, r, r1, src) => self.vshl(*ty, *vsize, *r, *r1, src),
+                Ins::Vshr(ty, vsize, r, r1, src) => self.vshr(*ty, *vsize, *r, *r1, src),
+                Ins::Vmul(ty, vsize, r, r1, src) => self.vmul(*ty, *vsize, *r, *r1, src),
+                Ins::Vmov(ty, vsize, r, src) => self.vmov(*ty, *vsize, *r, src),
+                Ins::Vrecpe(ty, vsize, r, src) => self.vrecpe(*ty, *vsize, *r, src),
+                Ins::Vrsqrte(ty, vsize, r, src) => self.vrsqrte(*ty, *vsize, *r, src),
+                Ins::Call(call_info) => self.call(call_info),
+                Ins::CallLocal(value) => self.call_local(*value),
+                Ins::Ci(r) => self.ci(*r),
+                Ins::Bi(r) => self.bi(*r),
+                Ins::Br(cond, value) => self.br(*cond, *value),
+                Ins::Jmp(value) => self.jmp(*value),
+                Ins::Cmov(cond, r, src) => self.cmov(*cond, *r, src),
+                Ins::Ret => self.ret(),
+                Ins::D(ty, value) => self.d(*ty, *value),
+            }
+        }
+        let state = self.state();
+        state.do_fixups(0)?;
+        Ok(state.into_compiler_result())
+    }
+
+    // Remember a PC-rel location.
+    fn label(&mut self, value: u32) {
+        let state = self.state();
+        state.labels.push((value, state.code.len()));
+    }
+
+    // Function entry & exit: Adjust sp by at least n bytes.
+    fn enter(&mut self, entry_info: &EntryInfo);
+    fn leave(&mut self, entry_info: &EntryInfo);
+
+    // Constants
+    fn addr(&mut self, reg: R, value: u32);
+
+    // Mem
+    fn ld(&mut self, ty: Type, reg1: R, reg2: R, offset: i32);
+    fn st(&mut self, ty: Type, reg1: R, reg2: R, offset: i32);
+    fn vld(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32);
+    fn vst(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32);
+
+    // Integer Arithmetic
+    fn add(&mut self, reg1: R, reg2: R, src: &Src);
+    fn sub(&mut self, reg1: R, reg2: R, src: &Src);
+    fn adc(&mut self, reg1: R, reg2: R, src: &Src);
+    fn sbb(&mut self, reg1: R, reg2: R, src: &Src);
+    fn and(&mut self, reg1: R, reg2: R, src: &Src);
+    fn or(&mut self, reg1: R, reg2: R, src: &Src);
+    fn xor(&mut self, reg1: R, reg2: R, src: &Src);
+    fn shl(&mut self, reg1: R, reg2: R, src: &Src);
+    fn shr(&mut self, reg1: R, reg2: R, src: &Src);
+    fn sar(&mut self, reg1: R, reg2: R, src: &Src);
+    fn mul(&mut self, reg1: R, reg2: R, src: &Src);
+    fn udiv(&mut self, reg1: R, reg2: R, src: &Src);
+    fn sdiv(&mut self, reg1: R, reg2: R, src: &Src);
+
+    fn mov(&mut self, reg: R, src: &Src);
+    fn cmp(&mut self, reg: R, src: &Src);
+    fn not(&mut self, reg: R, src: &Src);
+    fn neg(&mut self, reg: R, src: &Src);
+    fn push(&mut self, src: &Src);
+    fn pop(&mut self, src: &Src);
+
+    // Vector arithmetic
+    fn vadd(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src);
+    fn vsub(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src);
+    fn vand(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src);
+    fn vor(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src);
+    fn vxor(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src);
+    fn vshl(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src);
+    fn vshr(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src);
+    fn vmul(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src);
+
+    fn vmov(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src);
+    fn vrecpe(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src);
+    fn vrsqrte(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src);
+
+    // Control flow
+    fn call(&mut self, call_info: &CallInfo);
+    fn call_local(&mut self, value: u32);
+
+    /// Call indirect using stack or R(30)
+    fn ci(&mut self, reg: R);
+
+    /// Branch indirect
+    fn bi(&mut self, reg: R);
+
+    /// Use the flags to branch conditionally
+    /// Only after a Cmp
+    fn br(&mut self, cond: Cond, value: u32);
+    fn jmp(&mut self, value: u32);
+
+    fn cmov(&mut self, cond: Cond, reg: R, src: &Src);
+
+    /// Return using stack or R(30)
+    fn ret(&mut self);
+
+    /// Constant data
+    fn d(&mut self, ty: Type, value: u64) {
+        let bytes = match ty {
+            Type::U8 => value.to_le_bytes()[0..1].to_vec(),
+            Type::U16 => value.to_le_bytes()[0..2].to_vec(),
+            Type::U32 => value.to_le_bytes()[0..4].to_vec(),
+            Type::U64 => value.to_le_bytes().to_vec(),
+            Type::S8 => (value as i8).to_le_bytes()[0..1].to_vec(),
+            Type::S16 => (value as i16).to_le_bytes()[0..2].to_vec(),
+            Type::S32 => (value as i32).to_le_bytes()[0..4].to_vec(),
+            Type::S64 => (value as i64).to_le_bytes().to_vec(),
+            _ => unimplemented!(), // TODO: support more types
+        };
+        self.state().code.extend(bytes);
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Error {
     InvalidRegisterNumber(Ins),
@@ -805,8 +1011,8 @@ pub struct Executable {
 }
 
 impl Executable {
-    fn from_ir(cpu_info: &CpuInfo, ins: &[Ins]) -> Result<Self, Error> {
-        let res = cpu_info.compiler.compile(ins, cpu_info)?;
+    fn from_ir<C : Compiler>(mut compiler: C, ins: &[Ins]) -> Result<Self, Error> {
+        let res = compiler.compile(ins)?;
         Ok(Self::new(&res.code, res.labels))
     }
 

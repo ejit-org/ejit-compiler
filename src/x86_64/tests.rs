@@ -7,7 +7,8 @@ fn test_add() {
     use regs::*;
     use Ins::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let prog = Executable::from_ir(compiler, &[
         Add(RAX, RAX, RAX.into()),
         Add(RAX, RAX, RCX.into()),
         Add(RAX, RAX, RDX.into()),
@@ -71,7 +72,9 @@ fn test_binary_regs() {
     use regs::*;
     use Ins::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         Sub(RAX, RAX, RAX.into()),
         Sub(RAX, RAX, RCX.into()),
         Sub(RAX, RAX, RDX.into()),
@@ -136,7 +139,9 @@ fn test_shift_ecx() {
     use regs::*;
     use Ins::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         Shl(RAX, RAX, RAX.into()),
         Shl(RAX, RAX, RCX.into()),
         Shl(RAX, RCX, RAX.into()),
@@ -161,7 +166,9 @@ fn test_div_eax() {
     use regs::*;
     use Ins::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         Udiv(RBX, RBX, RBX.into()),
         Udiv(RBX, RBX, RAX.into()),
         Udiv(RBX, RAX, RBX.into()),
@@ -193,7 +200,9 @@ fn test_shift_regs() {
     use regs::*;
     use Ins::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         Shl(RAX, RAX, RAX.into()),
         Shl(RAX, RAX, RDI.into()),
         Shl(RAX, RAX, R15.into()),
@@ -216,7 +225,9 @@ fn test_binary() {
     use regs::*;
     use Ins::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         Add(RAX, RAX, RAX.into()),
         Sub(RAX, RAX, RAX.into()),
         And(RAX, RAX, RAX.into()),
@@ -243,7 +254,9 @@ fn test_vld() {
     use regs::*;
     use Ins::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         Vld(Type::S8, Vsize::V128, R(0), RAX, 0),
         Vld(Type::S8, Vsize::V128, R(0), RCX, 0),
         Vld(Type::S8, Vsize::V128, R(1), RAX, 0),
@@ -269,7 +282,9 @@ fn test_vst() {
     use regs::*;
     use Ins::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         Vst(Type::S8, Vsize::V128, R(0), RAX, 0),
         Vst(Type::S8, Vsize::V128, R(0), RCX, 0),
         Vst(Type::S8, Vsize::V128, R(1), RAX, 0),
@@ -296,7 +311,9 @@ fn test_modrm() {
     use Ins::*;
     use Type::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         St(U8, RAX, RAX, 0),
         St(U8, RAX, RSP, 0),
         St(U8, RAX, RBP, 0),
@@ -317,7 +334,9 @@ fn test_modrm() {
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=40+88+00+40+88+04+24+40+88+45+00+41+88+04+24+41+88+45+00+41+88+07+40+88+00+40+88+24+24+40+88+6d+00+45+88+24+24+45+88+6d+00+45+88+3f+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         St(U8, RAX, RAX, 1),
         St(U8, RAX, RSP, 1),
         St(U8, RAX, RBP, 1),
@@ -338,7 +357,9 @@ fn test_modrm() {
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=40+88+40+01+40+88+44+24+01+40+88+45+01+41+88+44+24+01+41+88+45+01+41+88+47+01+40+88+40+01+40+88+64+24+01+40+88+6d+01+45+88+64+24+01+45+88+6d+01+45+88+7f+01+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         St(U8, RAX, RAX, 128),
         St(U8, RAX, RSP, 128),
         St(U8, RAX, RBP, 128),
@@ -366,7 +387,9 @@ fn test_stb() {
     use Ins::*;
     use Type::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         St(U8, RAX, RAX, 0),
         St(U8, RAX, RSP, 0),
         St(U8, RAX, RBP, 0),
@@ -394,7 +417,9 @@ fn test_stw() {
     use Ins::*;
     use Type::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         St(U16, RAX, RAX, 0),
         St(U16, RAX, RSP, 0),
         St(U16, RAX, RBP, 0),
@@ -422,7 +447,9 @@ fn test_std() {
     use Ins::*;
     use Type::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         St(U32, RAX, RAX, 0),
         St(U32, RAX, RSP, 0),
         St(U32, RAX, RBP, 0),
@@ -450,7 +477,9 @@ fn test_stq() {
     use Ins::*;
     use Type::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         St(U64, RAX, RAX, 0),
         St(U64, RAX, RSP, 0),
         St(U64, RAX, RBP, 0),
@@ -478,7 +507,9 @@ fn test_ld() {
     use Ins::*;
     use Type::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         Ld(U8, RCX, RSI, 0),
         Ld(U16, RCX, RSI, 0),
         Ld(U32, RCX, RSI, 0),
@@ -504,7 +535,9 @@ fn test_vpadd() {
     use Type::*;
     use Vsize::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         Vadd(U8, V128, R(0), R(0), R(0).into()),
         Vadd(U16, V128, R(0), R(0), R(0).into()),
         Vadd(U32, V128, R(0), R(0), R(0).into()),
@@ -534,7 +567,9 @@ fn test_vpaddi() {
     use Type::*;
     use Vsize::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         Vadd(U8, V128, R(1), R(15), 0x12.into()),
         Vadd(U16, V128, R(1), R(15), 0x1234.into()),
         Vadd(U32, V128, R(1), R(15), 0x12345678.into()),
@@ -557,7 +592,9 @@ fn test_vpsub() {
     use Type::*;
     use Vsize::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         Vsub(U8, V128, R(0), R(0), R(0).into()),
         Vsub(U16, V128, R(0), R(0), R(0).into()),
         Vsub(U32, V128, R(0), R(0), R(0).into()),
@@ -587,7 +624,9 @@ fn test_vandorxor() {
     use Type::*;
     use Vsize::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         Vand(U8, V128, R(1), R(2), R(3).into()),
         Vor(U8, V128, R(1), R(2), R(3).into()),
         Vxor(U8, V128, R(1), R(2), R(3).into()),
@@ -610,7 +649,9 @@ fn test_vshift() {
     use Type::*;
     use Vsize::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         Vshl(U32, V128, R(1), R(2), R(3).into()),
         Vshr(S32, V128, R(1), R(2), R(3).into()),
         Vshr(U32, V128, R(1), R(2), R(3).into()),
@@ -633,7 +674,9 @@ fn test_vmul() {
     use Type::*;
     use Vsize::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         Vmul(F32, V128, R(1), R(2), R(3).into()),
         Vmul(F64, V128, R(1), R(2), R(3).into()),
         Vmul(F32, V256, R(1), R(2), R(3).into()),
@@ -654,7 +697,9 @@ fn test_vmovi() {
     use Type::*;
     use Vsize::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         Vmov(U8, V128, R(15), 0x12.into()),
         Vmov(U16, V128, R(15), 0x1234.into()),
         Vmov(U32, V128, R(15), 0x12345678.into()),
@@ -677,7 +722,9 @@ fn test_vmov() {
     use Type::*;
     use Vsize::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-    let prog = Executable::from_ir(&cpu_info, &[
+        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+
+    let prog = Executable::from_ir(compiler, &[
         Vmov(U8, V128, R(0), R(0).into()),
         Vmov(U16, V128, R(0), R(0).into()),
         Vmov(U32, V128, R(0), R(0).into()),

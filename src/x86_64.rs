@@ -318,6 +318,11 @@ const REG_INFO : &[RegInfo] = &[
 ];
 
 #[cfg(target_arch = "x86_64")]
+pub fn native_compiler(cpu_info: CpuInfo) -> X86_64Compiler {
+    X86_64Compiler
+}
+
+#[cfg(target_arch = "x86_64")]
 pub fn native_cpu_info() -> CpuInfo {
     use crate::aarch64::cpu_info;
 
@@ -357,12 +362,11 @@ pub fn cpu_info(cpu_level: CpuLevel) -> CpuInfo {
     let alloc0 = 1 << RSP.0;
     // Note for avx512, we will have 32 vector registers.
 
-    let compiler = Box::new(X86_64Compiler);
+    // let compiler = Box::new(X86_64Compiler);
 
     use regs::*;
     CpuInfo {
         cpu_level,
-        compiler,
         reg_info: REG_INFO,
         alloc: [alloc0, 0],
         args: Box::from(&[RDI, RSI, RDX, RCX, R8, R9][..]),
@@ -385,249 +389,443 @@ pub fn cpu_info(cpu_level: CpuLevel) -> CpuInfo {
     }
 }
 
-struct X86_64Compiler;
+struct X86_64Compiler {
+    state: State,
+}
 
-impl Compiler for X86_64Compiler {
-    fn compile(&self, ins: &[Ins], cpu_info: &CpuInfo) -> Result<CompilerResult, Error> {
-        let mut state = State {
-            code: Vec::new(),
-            labels: Vec::new(),
-            constants: Vec::new(),
-            fixups: Vec::new(),
-            cpu_info: cpu_info.clone(),
-        };
-        for i in ins {
-            use Ins::*;
-            match i {
-                Add(dest, src1, src2) => gen_binary(&mut state, OP_ADD, dest, src1, src2, &i)?,
-                Sub(dest, src1, src2) => gen_binary(&mut state, OP_SUB, dest, src1, src2, &i)?,
-                Adc(dest, src1, src2) => gen_binary(&mut state, OP_ADC, dest, src1, src2, &i)?,
-                Sbb(dest, src1, src2) => gen_binary(&mut state, OP_SBB, dest, src1, src2, &i)?,
-                And(dest, src1, src2) => gen_binary(&mut state, OP_AND, dest, src1, src2, &i)?,
-                Or(dest, src1, src2) => gen_binary(&mut state, OP_OR, dest, src1, src2, &i)?,
-                Xor(dest, src1, src2) => gen_binary(&mut state, OP_XOR, dest, src1, src2, &i)?,
-                Mul(dest, src1, src2) => gen_binary(&mut state, OP_MUL, dest, src1, src2, &i)?,
-                Udiv(dest, src1, src2) => gen_div(&mut state, OP_UDIV, dest, src1, src2, &i)?,
-                Sdiv(dest, src1, src2) => gen_div(&mut state, OP_SDIV, dest, src1, src2, &i)?,
-                Not(dest, src) => gen_unary(&mut state, OP_NOT, dest, src, &i)?,
-                Neg(dest, src) => gen_unary(&mut state, OP_NEG, dest, src, &i)?,
-                Mov(dest, src) => gen_mov(&mut state, dest, src, &i)?,
-                Cmp(src1, src2) => gen_binary(&mut state, OP_CMP, src1, src1, src2, &i)?,
-                Shl(dest, src1, src2) => gen_shift(&mut state, OP_SHL, dest, src1, src2, &i)?,
-                Shr(dest, src1, src2) => gen_shift(&mut state, OP_SHR, dest, src1, src2, &i)?,
-                Sar(dest, src1, src2) => gen_shift(&mut state, OP_SAR, dest, src1, src2, &i)?,
-                Label(label) => state.labels.push((*label, state.code.len())),
-                Addr(dest, label) => {
-                    state
-                        .fixups
-                        .push((state.code.len(), Fixup::Adr(*dest, *label)));
-                    let rex = 0x48 + dest.to_x86_high();
-                    let modrm = 0x05 + dest.to_x86_low() * 8;
-                    state
-                        .code
-                        .extend([rex, 0x8d, modrm, 0x00, 0x00, 0x00, 0x00]);
-                }
-                Ci(dest) => {
-                    let rex = 0x40 + dest.to_x86_high();
-                    let op = 0xff;
-                    let modrm = 0xd0 + dest.to_x86_low() * 8;
-
-                    if dest.to_x86_high() == 0 {
-                        state.code.extend([op, modrm]);
-                    } else {
-                        state.code.extend([rex, op, modrm]);
-                    }
-                }
-                Bi(dest) => {
-                    let rex = 0x40 + dest.to_x86_high();
-                    let op = 0xff;
-                    let modrm = 0xe0 + dest.to_x86_low();
-
-                    if dest.to_x86_high() == 0 {
-                        state.code.extend([op, modrm]);
-                    } else {
-                        state.code.extend([rex, op, modrm]);
-                    }
-                }
-                Br(cond, label) => {
-                    state
-                        .fixups
-                        .push((state.code.len(), Fixup::B(*cond, *label)));
-                    state.code.extend([0; 6]);
-                }
-                Jmp(label) => {
-                    state
-                        .fixups
-                        .push((state.code.len() + 1, Fixup::Label(*label, 4)));
-                    state.code.extend([OP_JMP, 0, 0, 0, 0]);
-                }
-                Ret => {
-                    state.code.push(0xc3);
-                }
-                Cmov(cond, dest, src) => {
-                    if let Some(src) = src.as_gpr(&state.cpu_info) {
-                        let op = cond.cc() + 0x40;
-                        gen_regreg(&mut state, op, dest, &src);
-                    } else {
-                        return Err(Error::InvalidSrcArgument(i.clone()));
-                    }
-                }
-                Enter(info) => {
-                    gen_enter(&mut state, &info, i)?;
-                }
-                Leave(info) => {
-                    gen_leave(&mut state, &info, i)?;
-                }
-                Ld(ty, r, ra, imm) => {
-                    gen_load(&mut state, *ty, *r, *ra, *imm, i)?;
-                }
-                St(ty, r, ra, imm) => {
-                    gen_store(&mut state, *ty, *r, *ra, *imm, i)?;
-                }
-                D(ty, value) => match ty {
-                    Type::U8 => state.code.extend([*value as u8]),
-                    Type::U16 => state.code.extend((*value as u16).to_le_bytes()),
-                    Type::U32 => state.code.extend((*value as u32).to_le_bytes()),
-                    Type::U64 => state.code.extend((*value as u64).to_le_bytes()),
-                    _ => return Err(Error::InvalidDataType(i.clone())),
-                },
-                Vld(_, vsize, v, ra, imm) => {
-                    gen_vload_store(&mut state, *vsize, OP_VLD, v, ra, *imm, i);
-                }
-                Vst(_, vsize, v, ra, imm) => {
-                    gen_vload_store(&mut state, *vsize, OP_VST, v, ra, *imm, i);
-                }
-                Vadd(ty, vsize, v, v1, v2) => {
-                    gen_vop(&mut state, &OP_VADD, ty, *vsize, v, v1, v2, i)?;
-                }
-                Vsub(ty, vsize, v, v1, v2) => {
-                    gen_vop(&mut state, &OP_VSUB, ty, *vsize, v, v1, v2, i)?;
-                }
-                Vand(ty, vsize, v, v1, v2) => {
-                    gen_vop(&mut state, &OP_VAND, ty, *vsize, v, v1, v2, i)?;
-                }
-                Vor(ty, vsize, v, v1, v2) => {
-                    gen_vop(&mut state, &OP_VOR, ty, *vsize, v, v1, v2, i)?;
-                }
-                Vxor(ty, vsize, v, v1, v2) => {
-                    gen_vop(&mut state, &OP_VXOR, ty, *vsize, v, v1, v2, i)?;
-                }
-                Vshl(ty, vsize, v, v1, v2) => {
-                    gen_vop(&mut state, &OP_VSHL, ty, *vsize, v, v1, v2, i)?;
-                }
-                Vshr(ty, vsize, v, v1, v2) => match ty {
-                    Type::U16 | Type::U32 | Type::U64 => {
-                        gen_vop(&mut state, &OP_VSHR, ty, *vsize, v, v1, v2, i)?
-                    }
-                    Type::S16 | Type::S32 | Type::S64 => {
-                        gen_vop(&mut state, &OP_VSAR, ty, *vsize, v, v1, v2, i)?
-                    }
-                    _ => return Err(Error::UnsupportedVectorOperation(i.clone())),
-                },
-                Vmul(ty, vsize, v, v1, v2) => {
-                    gen_vop(&mut state, &OP_VMUL, ty, *vsize, v, v1, v2, i)?;
-                }
-                Vmov(ty, vsize, v, v1) => {
-                    gen_vop(&mut state, &OP_VMOV, ty, *vsize, v, &R(0), v1, i)?;
-                }
-                Vrecpe(ty, vsize, v, v1) => {
-                    gen_vop(&mut state, &OP_VRCP, ty, *vsize, v, &R(0), v1, i)?;
-                }
-                Vrsqrte(ty, vsize, v, v1) => {
-                    gen_vop(&mut state, &OP_VRSQRT, ty, *vsize, v, &R(0), v1, i)?;
-                }
-                Call(call_info) => {
-                    gen_call(&mut state, call_info, i)?;
-                }
-                CallLocal(label) => {
-                    state
-                        .fixups
-                        .push((state.code.len() + 1, Fixup::Label(*label, 4)));
-                    state.code.extend([OP_CALL, 0, 0, 0, 0]);
-                }
-                Push(src) => gen_push(&mut state, src, i)?,
-                Pop(dest) => gen_pop(&mut state, dest, i)?,
-                // Addx(dest, src1, src2, bytes) => gen_addx(&mut state, *dest, *src1, *src2, *bytes, i)?,
-                // Subx(dest, src1, src2, bytes) => gen_subx(&mut state, *dest, *src1, *src2, *bytes, i)?,
-                // Mulx(dest, src1, src2, bytes) => gen_mulx(&mut state, *dest, *src1, *src2, *bytes, i)?,
-                // Udivx(dest, src1, src2, bytes) => gen_udivx(&mut state, *dest, *src1, *src2, *bytes, i)?,
-                // Sdivx(dest, src1, src2, bytes) => gen_sdivx(&mut state, *dest, *src1, *src2, *bytes, i)?,
-                // Movx(dest, src, bytes) => gen_movx(&mut state, *dest, *src, *bytes, i)?,
-            }
-        }
-
-        let cbase = state.code.len();
-        state.code.extend(&state.constants);
-
-        for (loc, f) in state.fixups {
-            match f {
-                Fixup::Adr(dest, label) => {
-                    // https://developer.arm.com/documentation/ddi0602/2024-12/Base-Instructions/ADR--Form-PC-relative-address-?lang=en
-                    if let Some((_, offset)) = state.labels.iter().find(|(n, _)| *n == label) {
-                        let delta = *offset as isize - loc as isize - 7;
-                        let delta32: i32 =
-                            delta.try_into().map_err(|_| Error::OffsetToLarge(label))?;
-                        state.code[loc + 3..loc + 7].copy_from_slice(&delta32.to_le_bytes());
-                    } else {
-                        return Err(Error::MissingLabel(label));
-                    }
-                }
-                Fixup::B(cond, label) => {
-                    if let Some((_, offset)) = state.labels.iter().find(|(n, _)| *n == label) {
-                        let delta = *offset as isize - loc as isize;
-                        // if delta-2 >= -0x80 && delta-2 <= 0x7f {
-                        //     let op = cond.cc() + 0x70;
-                        //     let imm = (delta-2) as i8 as u8;
-                        //     state.code.extend([op, imm]);
-                        let op = cond.cc() + 0x80;
-                        let imm: i32 = (delta - 6)
-                            .try_into()
-                            .map_err(|e| Error::BranchOutOfRange(label))?;
-                        let imm = imm.to_le_bytes();
-                        state.code[loc..loc + 6]
-                            .copy_from_slice(&[0x0f, op, imm[0], imm[1], imm[2], imm[3]]);
-                    } else {
-                        return Err(Error::MissingLabel(label));
-                    }
-                }
-                // Fixup::J(label) => {
-                //     // e9 80 00 00 00          jmp    246 <label1+0xe5>
-                //     if let Some((_, offset)) = state.labels.iter().find(|(n, _)| *n == label) {
-                //         let delta = *offset as isize - loc as isize;
-                //         let op = OP_JMP;
-                //         let imm: i32 = (delta - 5)
-                //             .try_into()
-                //             .map_err(|e| Error::BranchOutOfRange(label))?;
-                //         let imm = imm.to_le_bytes();
-                //         state.code[loc..loc + 5].copy_from_slice(&[op, imm[0], imm[1], imm[2], imm[3]]);
-                //     } else {
-                //         return Err(Error::MissingLabel(label));
-                //     }
-                // }
-                Fixup::Label(label, delta) => {
-                    if let Some((_, pos)) = state.labels.iter().find(|(n, _)| *n == label) {
-                        let offset: i32 = (*pos as isize - loc as isize - delta)
-                            .try_into()
-                            .map_err(|_| Error::CodeTooBig)?;
-                        state.code[loc..loc + 4].copy_from_slice(&offset.to_le_bytes());
-                    } else {
-                        return Err(Error::MissingLabel(label));
-                    }
-                }
-                Fixup::Const(pos, delta) => {
-                    let offset: i32 = ((cbase + pos) as isize - loc as isize - delta)
-                        .try_into()
-                        .map_err(|_| Error::CodeTooBig)?;
-                    state.code[loc..loc + 4].copy_from_slice(&offset.to_le_bytes());
-                },
-                Fixup::PcRel4(_) => {
-                    unimplemented!()
-                }
-            }
-        }
-        Ok(CompilerResult::new(state.code, state.labels))
+impl X86_64Compiler {
+    fn new(cpu_info: CpuInfo) -> Self {
+        Self { state: State::new(cpu_info) }
     }
 }
+
+impl Compiler for X86_64Compiler {
+    fn state(&mut self) -> &mut State {
+        &mut self.state
+    }
+
+    fn enter(&mut self, entry_info: &EntryInfo) {
+        todo!()
+    }
+
+    fn leave(&mut self, entry_info: &EntryInfo) {
+        todo!()
+    }
+
+    fn addr(&mut self, reg: R, value: u32) {
+        todo!()
+    }
+
+    fn ld(&mut self, ty: Type, reg1: R, reg2: R, offset: i32) {
+        todo!()
+    }
+
+    fn st(&mut self, ty: Type, reg1: R, reg2: R, offset: i32) {
+        todo!()
+    }
+
+    fn vld(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32) {
+        todo!()
+    }
+
+    fn vst(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32) {
+        todo!()
+    }
+
+    fn add(&mut self, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn sub(&mut self, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn adc(&mut self, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn sbb(&mut self, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn and(&mut self, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn or(&mut self, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn xor(&mut self, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn shl(&mut self, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn shr(&mut self, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn sar(&mut self, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn mul(&mut self, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn udiv(&mut self, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn sdiv(&mut self, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn mov(&mut self, reg: R, src: &Src) {
+        todo!()
+    }
+
+    fn cmp(&mut self, reg: R, src: &Src) {
+        todo!()
+    }
+
+    fn not(&mut self, reg: R, src: &Src) {
+        todo!()
+    }
+
+    fn neg(&mut self, reg: R, src: &Src) {
+        todo!()
+    }
+
+    fn push(&mut self, src: &Src) {
+        todo!()
+    }
+
+    fn pop(&mut self, src: &Src) {
+        todo!()
+    }
+
+    fn vadd(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn vsub(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn vand(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn vor(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn vxor(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn vshl(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn vshr(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn vmul(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+        todo!()
+    }
+
+    fn vmov(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src) {
+        todo!()
+    }
+
+    fn vrecpe(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src) {
+        todo!()
+    }
+
+    fn vrsqrte(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src) {
+        todo!()
+    }
+
+    fn call(&mut self, call_info: &CallInfo) {
+        todo!()
+    }
+
+    fn call_local(&mut self, value: u32) {
+        todo!()
+    }
+
+    fn ci(&mut self, reg: R) {
+        todo!()
+    }
+
+    fn bi(&mut self, reg: R) {
+        todo!()
+    }
+
+    fn br(&mut self, cond: Cond, value: u32) {
+        todo!()
+    }
+
+    fn jmp(&mut self, value: u32) {
+        todo!()
+    }
+
+    fn cmov(&mut self, cond: Cond, reg: R, src: &Src) {
+        todo!()
+    }
+
+    fn ret(&mut self) {
+        todo!()
+    }
+}
+
+// impl Compiler for X86_64Compiler {
+//     fn compile(&self, ins: &[Ins], cpu_info: &CpuInfo) -> Result<CompilerResult, Error> {
+//         let mut state = State {
+//             code: Vec::new(),
+//             labels: Vec::new(),
+//             constants: Vec::new(),
+//             fixups: Vec::new(),
+//             cpu_info: cpu_info.clone(),
+//         };
+//         for i in ins {
+//             use Ins::*;
+//             match i {
+//                 Add(dest, src1, src2) => gen_binary(&mut state, OP_ADD, dest, src1, src2, &i)?,
+//                 Sub(dest, src1, src2) => gen_binary(&mut state, OP_SUB, dest, src1, src2, &i)?,
+//                 Adc(dest, src1, src2) => gen_binary(&mut state, OP_ADC, dest, src1, src2, &i)?,
+//                 Sbb(dest, src1, src2) => gen_binary(&mut state, OP_SBB, dest, src1, src2, &i)?,
+//                 And(dest, src1, src2) => gen_binary(&mut state, OP_AND, dest, src1, src2, &i)?,
+//                 Or(dest, src1, src2) => gen_binary(&mut state, OP_OR, dest, src1, src2, &i)?,
+//                 Xor(dest, src1, src2) => gen_binary(&mut state, OP_XOR, dest, src1, src2, &i)?,
+//                 Mul(dest, src1, src2) => gen_binary(&mut state, OP_MUL, dest, src1, src2, &i)?,
+//                 Udiv(dest, src1, src2) => gen_div(&mut state, OP_UDIV, dest, src1, src2, &i)?,
+//                 Sdiv(dest, src1, src2) => gen_div(&mut state, OP_SDIV, dest, src1, src2, &i)?,
+//                 Not(dest, src) => gen_unary(&mut state, OP_NOT, dest, src, &i)?,
+//                 Neg(dest, src) => gen_unary(&mut state, OP_NEG, dest, src, &i)?,
+//                 Mov(dest, src) => gen_mov(&mut state, dest, src, &i)?,
+//                 Cmp(src1, src2) => gen_binary(&mut state, OP_CMP, src1, src1, src2, &i)?,
+//                 Shl(dest, src1, src2) => gen_shift(&mut state, OP_SHL, dest, src1, src2, &i)?,
+//                 Shr(dest, src1, src2) => gen_shift(&mut state, OP_SHR, dest, src1, src2, &i)?,
+//                 Sar(dest, src1, src2) => gen_shift(&mut state, OP_SAR, dest, src1, src2, &i)?,
+//                 Label(label) => state.labels.push((*label, state.code.len())),
+//                 Addr(dest, label) => {
+//                     state
+//                         .fixups
+//                         .push((state.code.len(), Fixup::Adr(*dest, *label)));
+//                     let rex = 0x48 + dest.to_x86_high();
+//                     let modrm = 0x05 + dest.to_x86_low() * 8;
+//                     state
+//                         .code
+//                         .extend([rex, 0x8d, modrm, 0x00, 0x00, 0x00, 0x00]);
+//                 }
+//                 Ci(dest) => {
+//                     let rex = 0x40 + dest.to_x86_high();
+//                     let op = 0xff;
+//                     let modrm = 0xd0 + dest.to_x86_low() * 8;
+
+//                     if dest.to_x86_high() == 0 {
+//                         state.code.extend([op, modrm]);
+//                     } else {
+//                         state.code.extend([rex, op, modrm]);
+//                     }
+//                 }
+//                 Bi(dest) => {
+//                     let rex = 0x40 + dest.to_x86_high();
+//                     let op = 0xff;
+//                     let modrm = 0xe0 + dest.to_x86_low();
+
+//                     if dest.to_x86_high() == 0 {
+//                         state.code.extend([op, modrm]);
+//                     } else {
+//                         state.code.extend([rex, op, modrm]);
+//                     }
+//                 }
+//                 Br(cond, label) => {
+//                     state
+//                         .fixups
+//                         .push((state.code.len(), Fixup::B(*cond, *label)));
+//                     state.code.extend([0; 6]);
+//                 }
+//                 Jmp(label) => {
+//                     state
+//                         .fixups
+//                         .push((state.code.len() + 1, Fixup::Label(*label, 4)));
+//                     state.code.extend([OP_JMP, 0, 0, 0, 0]);
+//                 }
+//                 Ret => {
+//                     state.code.push(0xc3);
+//                 }
+//                 Cmov(cond, dest, src) => {
+//                     if let Some(src) = src.as_gpr(&state.cpu_info) {
+//                         let op = cond.cc() + 0x40;
+//                         gen_regreg(&mut state, op, dest, &src);
+//                     } else {
+//                         return Err(Error::InvalidSrcArgument(i.clone()));
+//                     }
+//                 }
+//                 Enter(info) => {
+//                     gen_enter(&mut state, &info, i)?;
+//                 }
+//                 Leave(info) => {
+//                     gen_leave(&mut state, &info, i)?;
+//                 }
+//                 Ld(ty, r, ra, imm) => {
+//                     gen_load(&mut state, *ty, *r, *ra, *imm, i)?;
+//                 }
+//                 St(ty, r, ra, imm) => {
+//                     gen_store(&mut state, *ty, *r, *ra, *imm, i)?;
+//                 }
+//                 D(ty, value) => match ty {
+//                     Type::U8 => state.code.extend([*value as u8]),
+//                     Type::U16 => state.code.extend((*value as u16).to_le_bytes()),
+//                     Type::U32 => state.code.extend((*value as u32).to_le_bytes()),
+//                     Type::U64 => state.code.extend((*value as u64).to_le_bytes()),
+//                     _ => return Err(Error::InvalidDataType(i.clone())),
+//                 },
+//                 Vld(_, vsize, v, ra, imm) => {
+//                     gen_vload_store(&mut state, *vsize, OP_VLD, v, ra, *imm, i);
+//                 }
+//                 Vst(_, vsize, v, ra, imm) => {
+//                     gen_vload_store(&mut state, *vsize, OP_VST, v, ra, *imm, i);
+//                 }
+//                 Vadd(ty, vsize, v, v1, v2) => {
+//                     gen_vop(&mut state, &OP_VADD, ty, *vsize, v, v1, v2, i)?;
+//                 }
+//                 Vsub(ty, vsize, v, v1, v2) => {
+//                     gen_vop(&mut state, &OP_VSUB, ty, *vsize, v, v1, v2, i)?;
+//                 }
+//                 Vand(ty, vsize, v, v1, v2) => {
+//                     gen_vop(&mut state, &OP_VAND, ty, *vsize, v, v1, v2, i)?;
+//                 }
+//                 Vor(ty, vsize, v, v1, v2) => {
+//                     gen_vop(&mut state, &OP_VOR, ty, *vsize, v, v1, v2, i)?;
+//                 }
+//                 Vxor(ty, vsize, v, v1, v2) => {
+//                     gen_vop(&mut state, &OP_VXOR, ty, *vsize, v, v1, v2, i)?;
+//                 }
+//                 Vshl(ty, vsize, v, v1, v2) => {
+//                     gen_vop(&mut state, &OP_VSHL, ty, *vsize, v, v1, v2, i)?;
+//                 }
+//                 Vshr(ty, vsize, v, v1, v2) => match ty {
+//                     Type::U16 | Type::U32 | Type::U64 => {
+//                         gen_vop(&mut state, &OP_VSHR, ty, *vsize, v, v1, v2, i)?
+//                     }
+//                     Type::S16 | Type::S32 | Type::S64 => {
+//                         gen_vop(&mut state, &OP_VSAR, ty, *vsize, v, v1, v2, i)?
+//                     }
+//                     _ => return Err(Error::UnsupportedVectorOperation(i.clone())),
+//                 },
+//                 Vmul(ty, vsize, v, v1, v2) => {
+//                     gen_vop(&mut state, &OP_VMUL, ty, *vsize, v, v1, v2, i)?;
+//                 }
+//                 Vmov(ty, vsize, v, v1) => {
+//                     gen_vop(&mut state, &OP_VMOV, ty, *vsize, v, &R(0), v1, i)?;
+//                 }
+//                 Vrecpe(ty, vsize, v, v1) => {
+//                     gen_vop(&mut state, &OP_VRCP, ty, *vsize, v, &R(0), v1, i)?;
+//                 }
+//                 Vrsqrte(ty, vsize, v, v1) => {
+//                     gen_vop(&mut state, &OP_VRSQRT, ty, *vsize, v, &R(0), v1, i)?;
+//                 }
+//                 Call(call_info) => {
+//                     gen_call(&mut state, call_info, i)?;
+//                 }
+//                 CallLocal(label) => {
+//                     state
+//                         .fixups
+//                         .push((state.code.len() + 1, Fixup::Label(*label, 4)));
+//                     state.code.extend([OP_CALL, 0, 0, 0, 0]);
+//                 }
+//                 Push(src) => gen_push(&mut state, src, i)?,
+//                 Pop(dest) => gen_pop(&mut state, dest, i)?,
+//                 // Addx(dest, src1, src2, bytes) => gen_addx(&mut state, *dest, *src1, *src2, *bytes, i)?,
+//                 // Subx(dest, src1, src2, bytes) => gen_subx(&mut state, *dest, *src1, *src2, *bytes, i)?,
+//                 // Mulx(dest, src1, src2, bytes) => gen_mulx(&mut state, *dest, *src1, *src2, *bytes, i)?,
+//                 // Udivx(dest, src1, src2, bytes) => gen_udivx(&mut state, *dest, *src1, *src2, *bytes, i)?,
+//                 // Sdivx(dest, src1, src2, bytes) => gen_sdivx(&mut state, *dest, *src1, *src2, *bytes, i)?,
+//                 // Movx(dest, src, bytes) => gen_movx(&mut state, *dest, *src, *bytes, i)?,
+//             }
+//         }
+
+//         let cbase = state.code.len();
+//         state.code.extend(&state.constants);
+
+//         for (loc, f) in state.fixups {
+//             match f {
+//                 Fixup::Adr(dest, label) => {
+//                     // https://developer.arm.com/documentation/ddi0602/2024-12/Base-Instructions/ADR--Form-PC-relative-address-?lang=en
+//                     if let Some((_, offset)) = state.labels.iter().find(|(n, _)| *n == label) {
+//                         let delta = *offset as isize - loc as isize - 7;
+//                         let delta32: i32 =
+//                             delta.try_into().map_err(|_| Error::OffsetToLarge(label))?;
+//                         state.code[loc + 3..loc + 7].copy_from_slice(&delta32.to_le_bytes());
+//                     } else {
+//                         return Err(Error::MissingLabel(label));
+//                     }
+//                 }
+//                 Fixup::B(cond, label) => {
+//                     if let Some((_, offset)) = state.labels.iter().find(|(n, _)| *n == label) {
+//                         let delta = *offset as isize - loc as isize;
+//                         // if delta-2 >= -0x80 && delta-2 <= 0x7f {
+//                         //     let op = cond.cc() + 0x70;
+//                         //     let imm = (delta-2) as i8 as u8;
+//                         //     state.code.extend([op, imm]);
+//                         let op = cond.cc() + 0x80;
+//                         let imm: i32 = (delta - 6)
+//                             .try_into()
+//                             .map_err(|e| Error::BranchOutOfRange(label))?;
+//                         let imm = imm.to_le_bytes();
+//                         state.code[loc..loc + 6]
+//                             .copy_from_slice(&[0x0f, op, imm[0], imm[1], imm[2], imm[3]]);
+//                     } else {
+//                         return Err(Error::MissingLabel(label));
+//                     }
+//                 }
+//                 // Fixup::J(label) => {
+//                 //     // e9 80 00 00 00          jmp    246 <label1+0xe5>
+//                 //     if let Some((_, offset)) = state.labels.iter().find(|(n, _)| *n == label) {
+//                 //         let delta = *offset as isize - loc as isize;
+//                 //         let op = OP_JMP;
+//                 //         let imm: i32 = (delta - 5)
+//                 //             .try_into()
+//                 //             .map_err(|e| Error::BranchOutOfRange(label))?;
+//                 //         let imm = imm.to_le_bytes();
+//                 //         state.code[loc..loc + 5].copy_from_slice(&[op, imm[0], imm[1], imm[2], imm[3]]);
+//                 //     } else {
+//                 //         return Err(Error::MissingLabel(label));
+//                 //     }
+//                 // }
+//                 Fixup::Label(label, delta) => {
+//                     if let Some((_, pos)) = state.labels.iter().find(|(n, _)| *n == label) {
+//                         let offset: i32 = (*pos as isize - loc as isize - delta)
+//                             .try_into()
+//                             .map_err(|_| Error::CodeTooBig)?;
+//                         state.code[loc..loc + 4].copy_from_slice(&offset.to_le_bytes());
+//                     } else {
+//                         return Err(Error::MissingLabel(label));
+//                     }
+//                 }
+//                 Fixup::Const(pos, delta) => {
+//                     let offset: i32 = ((cbase + pos) as isize - loc as isize - delta)
+//                         .try_into()
+//                         .map_err(|_| Error::CodeTooBig)?;
+//                     state.code[loc..loc + 4].copy_from_slice(&offset.to_le_bytes());
+//                 },
+//                 Fixup::PcRel4(_) => {
+//                     unimplemented!()
+//                 }
+//             }
+//         }
+//         Ok(CompilerResult::new(state.code, state.labels))
+//     }
+// }
 
 fn gen_store(state: &mut State, ty: Type, r: R, ra: R, imm: i32, i: &Ins) -> Result<(), Error> {
     use Type::*;
@@ -758,7 +956,7 @@ fn gen_call(state: &mut State, call_info: &CallInfo, i: &Ins) -> Result<(), Erro
         let (dest, src) = movs[i].clone();
         if movs[1..]
             .iter()
-            .find(|(dest2, src2)| src2.as_gpr(state.cpu_info) == Some(dest))
+            .find(|(dest2, src2)| src2.as_gpr(&state.cpu_info) == Some(dest))
             .is_some()
         {
             movs.push((dest.clone(), src.clone()));
@@ -860,7 +1058,7 @@ fn gen_vop(
         return Err(Error::InvalidType(i.clone()));
     }
 
-    if let Some(v2) = v2.as_gpr(state.cpu_info) {
+    if let Some(v2) = v2.as_gpr(&state.cpu_info) {
         let modrm = 0xc0 + v2.to_x86_low() + v.to_x86_low() * 8;
         let (r, x, b, w) = (v.to_x86_high(), 0, v2.to_x86_high(), 0);
         let l = if vsize == Vsize::V128 { 0 } else { 1 };
@@ -1105,11 +1303,11 @@ fn gen_binary(
     src2: &Src,
     i: &Ins,
 ) -> Result<(), Error> {
-    if dest.rc(state.cpu_info) != RegClass::GPR || src1.rc(state.cpu_info) != RegClass::GPR {
+    if dest.rc(&state.cpu_info) != RegClass::GPR || src1.rc(&state.cpu_info) != RegClass::GPR {
         return Err(Error::BadRegClass(i.clone()));
     }
     gen_mov(state, dest, &src1.into(), i)?;
-    if let Some(src2) = src2.as_gpr(state.cpu_info) {
+    if let Some(src2) = src2.as_gpr(&state.cpu_info) {
         let opcode = opcodes[0];
         if opcode.len() == 3 {
             let op = opcode[1];
@@ -1141,7 +1339,7 @@ fn gen_unary(
     i: &Ins,
 ) -> Result<(), Error> {
     gen_mov(state, dest, src, i)?;
-    if let Some(src) = src.as_gpr(state.cpu_info) {
+    if let Some(src) = src.as_gpr(&state.cpu_info) {
         let opcode = opcodes[0];
         gen_regreg(state, opcode[1], dest, &src);
     } else {
@@ -1151,10 +1349,10 @@ fn gen_unary(
 }
 
 fn gen_mov(state: &mut State, dest: &R, src: &Src, i: &Ins) -> Result<(), Error> {
-    if dest.rc(state.cpu_info) != RegClass::GPR {
+    if dest.rc(&state.cpu_info) != RegClass::GPR {
         return Err(Error::BadRegClass(i.clone()));
     }
-    if let Some(src) = src.as_gpr(state.cpu_info) {
+    if let Some(src) = src.as_gpr(&state.cpu_info) {
         if &src != dest {
             gen_regreg(state, 0x89, dest, &src);
         }
@@ -1216,7 +1414,7 @@ fn gen_div(
     src2: &Src,
     i: &Ins,
 ) -> Result<(), Error> {
-    if dest.rc(state.cpu_info) != RegClass::GPR || src1.rc(state.cpu_info) != RegClass::GPR {
+    if dest.rc(&state.cpu_info) != RegClass::GPR || src1.rc(&state.cpu_info) != RegClass::GPR {
         return Err(Error::BadRegClass(i.clone()));
     }
 
@@ -1225,8 +1423,8 @@ fn gen_div(
     let save_rax = dest != &regs::RAX;
     let save_rdx = dest != &regs::RDX;
     let use_stack = src2.as_imm64().is_some()
-        || src2.as_gpr(state.cpu_info) == Some(regs::RAX)
-        || src2.as_gpr(state.cpu_info) == Some(regs::RDX);
+        || src2.as_gpr(&state.cpu_info) == Some(regs::RAX)
+        || src2.as_gpr(&state.cpu_info) == Some(regs::RDX);
 
     if save_rax {
         gen_push(state, &regs::RAX.into(), i)?;
@@ -1247,7 +1445,7 @@ fn gen_div(
     }
 
     if !use_stack {
-        let Some(src2) = src2.as_gpr(state.cpu_info) else {
+        let Some(src2) = src2.as_gpr(&state.cpu_info) else {
             return Err(Error::InvalidSrcArgument(i.clone()));
         };
         // 48 f7 f0                div    %rax
@@ -1285,7 +1483,7 @@ fn gen_shift(
     src2: &Src,
     i: &Ins,
 ) -> Result<(), Error> {
-    if let Some(reg) = src2.as_gpr(state.cpu_info) {
+    if let Some(reg) = src2.as_gpr(&state.cpu_info) {
         // TODO: Use SHLX etc if BMI available.
         if dest != &regs::RCX {
             gen_push(state, &regs::RCX.into(), i)?;
@@ -1321,8 +1519,8 @@ fn gen_shift(
 /// The push instruction on x86 is quite efficient and is great
 /// fo constant generation.
 fn gen_push(state: &mut State, src: &Src, i: &Ins) -> Result<(), Error> {
-    if let Some(src) = src.as_gpr(state.cpu_info) {
-        if src.rc(state.cpu_info) != RegClass::GPR {
+    if let Some(src) = src.as_gpr(&state.cpu_info) {
+        if src.rc(&state.cpu_info) != RegClass::GPR {
             return Err(Error::BadRegClass(i.clone()));
         }
         let op = OP_PUSH + src.to_x86_low();
@@ -1354,8 +1552,8 @@ fn gen_push(state: &mut State, src: &Src, i: &Ins) -> Result<(), Error> {
 }
 
 fn gen_pop(state: &mut State, dest: &Src, i: &Ins) -> Result<(), Error> {
-    if let Some(dest) = dest.as_gpr(state.cpu_info) {
-        if dest.rc(state.cpu_info) != RegClass::GPR {
+    if let Some(dest) = dest.as_gpr(&state.cpu_info) {
+        if dest.rc(&state.cpu_info) != RegClass::GPR {
             return Err(Error::BadRegClass(i.clone()));
         }
         let op = OP_POP + dest.to_x86_low();
