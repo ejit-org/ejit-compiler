@@ -161,7 +161,7 @@ pub fn native_cpu_info() -> CpuInfo {
     cpu_info(CpuLevel::Simd128)
 }
 
-/// A simlified CPU level specification.
+/// 
 pub fn cpu_info(cpu_level: CpuLevel) -> CpuInfo {
     // let compiler = Aarch64Compiler::new(&CpuInfo::default());
 
@@ -215,7 +215,9 @@ pub fn cpu_info(cpu_level: CpuLevel) -> CpuInfo {
 
 type Optype = u32;
 const OP_ADDS: Optype = 0xab000000;
+const OP_ADDI: u32 = 0xb1000000;
 const OP_SUBS: Optype = 0xeb000000;
+const OP_SUBI: u32 = 0xf1000000;
 const OP_ADCS: Optype = 0xba000000;
 const OP_SBCS: Optype = 0xfa000000;
 const OP_ANDS: Optype = 0xea000000;
@@ -274,258 +276,239 @@ impl Compiler for Aarch64Compiler {
         &mut self.state
     }
 
-    fn enter(&mut self, entry_info: &EntryInfo) {
+    fn addr(&mut self, reg: R, value: u32, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn leave(&mut self, entry_info: &EntryInfo) {
+    fn ld(&mut self, ty: Type, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn addr(&mut self, reg: R, value: u32) {
+    fn st(&mut self, ty: Type, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn ld(&mut self, ty: Type, reg1: R, reg2: R, offset: i32) {
+    fn vld(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn st(&mut self, ty: Type, reg1: R, reg2: R, offset: i32) {
+    fn vst(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vld(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32) {
+    fn add(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
+        let state = self.state();
+        check_args(dest, src1, src2, i, state)?;
+        if let Some(src2) = src2.as_gpr(&state.cpu_info) {
+            let (rd, rn, rm) = (dest.to_arm64(), src1.to_arm64(), src2.to_arm64());
+            gen::reg_shifted(state, OP_ADDS, 0, rm, 0, rn, rd)?;
+        } else if let Some(imm) = src2.as_imm64() {
+            let (rd, rn) = (dest.to_arm64(), src1.to_arm64());
+            if imm & !0xfff == 0 {
+                gen::imm_shifted( state, OP_ADDI, 0, imm as u32, rn, rd)?;
+            } else if imm & !(0xfff << 12) == 0 {
+                gen::imm_shifted(state, OP_ADDI, 1, (imm >> 12) as u32, rn, rd)?;
+            } else {
+                gen::ld_constant(state, regs::TMP.to_arm64(), imm)?;
+                gen::reg_shifted(state, OP_ADDS, 0, regs::TMP.to_arm64(), 0, rn, rd)?;
+            }
+        } else {
+            return Err(Error::InvalidSrcArgument(i.clone()));
+        }
+        Ok(())
+    }
+
+    fn sub(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
+        let state = self.state();
+        check_args(dest, src1, src2, i, state)?;
+        if let Some(src2) = src2.as_gpr(&state.cpu_info) {
+            let (rd, rn, rm) = (dest.to_arm64(), src1.to_arm64(), src2.to_arm64());
+            gen::reg_shifted(state, OP_SUBS, 0, rm, 0, rn, rd)?;
+        } else if let Some(imm) = src2.as_imm64() {
+            let (rd, rn) = (dest.to_arm64(), src1.to_arm64());
+            if imm & !0xfff == 0 {
+                gen::imm_shifted( state, OP_SUBI, 0, imm as u32, rn, rd)?;
+            } else if imm & !(0xfff << 12) == 0 {
+                gen::imm_shifted(state, OP_SUBI, 1, (imm >> 12) as u32, rn, rd)?;
+            } else {
+                gen::ld_constant(state, regs::TMP.to_arm64(), imm)?;
+                gen::reg_shifted(state, OP_SUBS, 0, regs::TMP.to_arm64(), 0, rn, rd)?;
+            }
+        } else {
+            return Err(Error::InvalidSrcArgument(i.clone()));
+        }
+        Ok(())
+    }
+
+    fn adc(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vst(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32) {
+    fn sbb(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn add(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn and(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn sub(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn or(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn adc(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn xor(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn sbb(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn shl(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn and(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn shr(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn or(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn sar(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn xor(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn mul(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn shl(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn udiv(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn shr(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn sdiv(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn sar(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn mov(&mut self, dest: R, src: &Src, i: &Ins) -> Result<(), Error> {
+        let state = self.state();
+        if dest.rc(&state.cpu_info) != RegClass::GPR {
+            return Err(Error::BadRegClass(i.clone()));
+        }
+        if let Some(r) = src.as_gpr(&state.cpu_info) {
+            if r != dest {
+                gen_unary(state, OP_MOV, dest, src, i);
+            }
+        } else if let Some(imm) = src.as_imm64() {
+            gen::ld_constant(state, dest.to_arm64(), imm);
+        } else {
+            return Err(Error::InvalidSrcArgument(i.clone()));
+        }
+        Ok(())
+    }
+
+    fn cmp(&mut self, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn mul(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn not(&mut self, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn udiv(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn neg(&mut self, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn sdiv(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn push(&mut self, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn mov(&mut self, reg: R, src: &Src) {
+    fn pop(&mut self, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn cmp(&mut self, reg: R, src: &Src) {
+    fn vadd(&mut self, ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn not(&mut self, reg: R, src: &Src) {
+    fn vsub(&mut self, ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn neg(&mut self, reg: R, src: &Src) {
+    fn vand(&mut self, ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn push(&mut self, src: &Src) {
+    fn vor(&mut self, ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn pop(&mut self, src: &Src) {
+    fn vxor(&mut self, ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vadd(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+    fn vshl(&mut self, ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vsub(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+    fn vshr(&mut self, ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vand(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+    fn vmul(&mut self, ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vor(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+    fn vmov(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vxor(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+    fn vrecpe(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vshl(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+    fn vrsqrte(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vshr(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+    fn call(&mut self, call_info: &CallInfo, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vmul(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+    fn call_local(&mut self, value: u32, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vmov(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src) {
+    fn ci(&mut self, reg: R, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vrecpe(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src) {
+    fn bi(&mut self, reg: R, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vrsqrte(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src) {
+    fn br(&mut self, cond: Cond, value: u32, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn call(&mut self, call_info: &CallInfo) {
+    fn jmp(&mut self, value: u32, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn call_local(&mut self, value: u32) {
+    fn cmov(&mut self, cond: Cond, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn ci(&mut self, reg: R) {
-        todo!()
-    }
-
-    fn bi(&mut self, reg: R) {
-        todo!()
-    }
-
-    fn br(&mut self, cond: Cond, value: u32) {
-        todo!()
-    }
-
-    fn jmp(&mut self, value: u32) {
-        todo!()
-    }
-
-    fn cmov(&mut self, cond: Cond, reg: R, src: &Src) {
-        todo!()
-    }
-
-    fn ret(&mut self) {
+    fn ret(&mut self, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 }
 
-// impl<'a> Compiler for Aarch64Compiler<'a> {
-
-    // fn compile(&self, ins: &[Ins], cpu_info: &CpuInfo) -> Result<CompilerResult, Error> {
-    //     let mut state = State {
-    //         code: Vec::new(),
-    //         labels: Vec::new(),
-    //         constants: Vec::new(),
-    //         fixups: Vec::new(),
-    //         cpu_info: cpu_info,
-    //     };
-    //     for i in ins {
-    //         use Ins::*;
-    //         match i {
-    //             Add(dest, src1, src2) => gen_binary(&mut state, OP_ADDS, dest, src1, src2, &i)?,
-    //             Sub(dest, src1, src2) => gen_binary(&mut state, OP_SUBS, dest, src1, src2, &i)?,
-    //             Adc(dest, src1, src2) => gen_binary(&mut state, OP_ADCS, dest, src1, src2, &i)?,
-    //             Sbb(dest, src1, src2) => gen_binary(&mut state, OP_SBCS, dest, src1, src2, &i)?,
-    //             And(dest, src1, src2) => gen_binary(&mut state, OP_ANDS, dest, src1, src2, &i)?,
-    //             Or(dest, src1, src2) => gen_binary(&mut state, OP_ORR, dest, src1, src2, &i)?,
-    //             Xor(dest, src1, src2) => gen_binary(&mut state, OP_EOR, dest, src1, src2, &i)?,
-    //             Mul(dest, src1, src2) => gen_binary(&mut state, OP_MUL, dest, src1, src2, &i)?,
-    //             Udiv(dest, src1, src2) => gen_binary(&mut state, OP_UDIV, dest, src1, src2, &i)?,
-    //             Sdiv(dest, src1, src2) => gen_binary(&mut state, OP_SDIV, dest, src1, src2, &i)?,
-    //             Not(dest, src) => gen_unary(&mut state, OP_MVN, dest, src, &i)?,
-    //             Neg(dest, src) => gen_unary(&mut state, OP_NEG, dest, src, &i)?,
-    //             Mov(dest, src) => gen_mov(&mut state, dest, src, &i)?,
-    //             Cmp(src1, src2) => gen_unary(&mut state, OP_CMP, src1, src2, &i)?,
-    //             Shl(dest, src1, src2) => gen_binary(&mut state, OP_LSL, dest, src1, src2, &i)?,
-    //             Shr(dest, src1, src2) => gen_binary(&mut state, OP_LSR, dest, src1, src2, &i)?,
-    //             Sar(dest, src1, src2) => gen_binary(&mut state, OP_ASR, dest, src1, src2, &i)?,
-    //             Label(label) => state.labels.push((*label, state.code.len())),
-    //             Addr(dest, label) => gen::adr(&mut state, dest.to_arm64(), *label),
-    //             Ci(dest) => gen::branch_indirect(&mut state, OP_BLR, dest.to_arm64()),
-    //             Bi(dest) => gen::branch_indirect(&mut state, OP_BR, dest.to_arm64()),
-    //             Br(cond, label) => gen::branch_cond(&mut state, cond.to_arm64(), *label),
-    //             Jmp(label) => gen::branch(&mut state, OP_B, *label),
-    //             Enter(entry_info) => gen_enter(&mut state, entry_info, i)?,
-    //             Leave(entry_info) => gen_leave(&mut state, entry_info, i)?,
-    //             Ld(ty, r, ra, imm) => gen_load(state, *ty, *r, *ra,  *imm, i)?,
-    //             St(ty, r, ra, imm) => gen_store(state, *ty, *r, *ra,  *imm, i)?,
-    //             Vld(_, vsize, r, r1, _) => todo!(),
-    //             Vst(_, vsize, r, r1, _) => todo!(),
-    //             Push(src) => todo!(),
-    //             Pop(src) => todo!(),
-    //             Vadd(_, vsize, r, r1, src) => todo!(),
-    //             Vsub(_, vsize, r, r1, src) => todo!(),
-    //             Vand(_, vsize, r, r1, src) => todo!(),
-    //             Vor(_, vsize, r, r1, src) => todo!(),
-    //             Vxor(_, vsize, r, r1, src) => todo!(),
-    //             Vshl(_, vsize, r, r1, src) => todo!(),
-    //             Vshr(_, vsize, r, r1, src) => todo!(),
-    //             Vmul(_, vsize, r, r1, src) => todo!(),
-    //             Vmov(_, vsize, r, src) => todo!(),
-    //             Vrecpe(_, vsize, r, src) => todo!(),
-    //             Vrsqrte(_, vsize, r, src) => todo!(),
-    //             Call(call_info) => todo!(),
-    //             CallLocal(_) => todo!(),
-    //             Cmov(cond, r, src) => todo!(),
-    //             Ret => todo!(),
-    //             D(_, _) => todo!(),
-    //         }
-    //     }
-
-    //     let cbase = state.code.len();
-    //     state.code.extend(&state.constants);
-
-    //     state.do_fixups(cbase);
-
-    //     Ok(CompilerResult::new(state.code, state.labels))
-    // }
-// }
+fn check_args(dest: R, src1: R, src2: &Src, i: &Ins, state: &mut State) -> Result<(), Error> {
+    if dest.rc(&state.cpu_info) != RegClass::GPR || src1.rc(&state.cpu_info) != RegClass::GPR {
+        return Err(Error::BadRegClass(i.clone()));
+    }
+    if let Some(src2) = src2.as_gpr(&state.cpu_info) {
+        if src2 == regs::SP {
+            return Err(Error::SpNotAllowed(i.clone()));
+        }
+    }
+    Ok(())
+}
 
 fn gen_store(state: &mut State, ty: Type, r: R, ra: R, imm: i32, i: &Ins) -> Result<(), Error> {
     // use Type::*;
@@ -557,86 +540,6 @@ fn gen_load(state: &mut State, ty: Type, r: R, ra: R, imm: i32, i: &Ins) -> Resu
     Ok(())
 }
 
-
-/// Generate function entry.
-/// 
-/// ---- old sp
-/// saves
-/// ----
-/// scratch
-/// ---- new sp (must be 0 mod 16)
-fn gen_enter(state: &mut State, info: &EntryInfo, i: &Ins) -> Result<(), Error> {
-    let scratch = info.stack_size + 15 & !15;
-    let saves = info.saves.len() * 8 + 15 & !15;
-    let spdiff = scratch + saves;
-    let sp = &state.cpu_info.sp();
-    if spdiff != 0 {
-        let imm = &spdiff.into();
-        gen_binary(state, OP_SUBS, sp, sp, imm, i)?;
-    }
-
-    for (idx, r) in info.saves.iter().copied().enumerate() {
-        gen_store(state, Type::U64, r, *sp, (scratch + idx * 8) as i32, i)?;
-    }
-
-    let args_src : Box<[R]> = state.cpu_info.args().iter().take(info.args.len()).cloned().collect();
-    gen_movm(state, &info.args, &args_src, i)?;
-
-    Ok(())
-}
-
-fn gen_leave(state: &mut State, info: &EntryInfo, i: &Ins) -> Result<(), Error> {
-    let scratch = info.stack_size + 15 & !15;
-    let saves = info.saves.len() * 8 + 15 & !15;
-    let spdiff = scratch + saves;
-    let sp = &state.cpu_info.sp();
-
-    if spdiff != 0 {
-        let imm = &spdiff.into();
-        gen_binary(state, OP_SUBS, sp, sp, imm, i)?;
-    }
-
-    let res_dest : Box<[R]> = state.cpu_info.res().iter().take(info.res.len()).cloned().collect();
-
-    gen_movm(state, &res_dest, &info.res, i)?;
-
-    for (idx, r) in info.saves.iter().copied().enumerate() {
-        gen_load(state, Type::U64, r, *sp, (scratch + idx * 8) as i32, i)?;
-    }
-    Ok(())
-}
-
-/// Multiple register move. Typically arguments of functions.
-/// Move the source register to the dest, avoiding dependencies.
-///
-/// eg.
-///
-///   No dependencies
-///   gen_movm(&[R(2), R(3)], &[R(1), R(0)]);
-///
-///   We cannot do this with moves alone. (ideally use xchg or push/pop)
-///   gen_movm(&[R(0), R(1)], &[R(1), R(0)]);
-///
-///   
-fn gen_movm(state: &mut State, dest: &[R], src: &[R], i: &Ins) -> Result<(), Error> {
-    let mut pops = Vec::new();
-    for j in 0..dest.len() {
-        let d = dest[j];
-        let s = src[j];
-        if d != s {
-            if src[j + 1..].contains(&d) {
-                gen_push(state, &s.into(), i)?;
-                pops.push(d);
-            } else {
-                gen_mov(state, &d, &s.into(), i)?;
-            }
-        }
-    }
-    for d in pops.into_iter().rev() {
-        gen_pop(state, &d.into(), i)?;
-    }
-    Ok(())
-}
 
 /// Generate a call including register assignments and saves.
 fn gen_call(state: &mut State, call_info: &CallInfo, i: &Ins) -> Result<(), Error> {
@@ -993,7 +896,7 @@ fn gen_binary(
     Ok(())
 }
 
-fn gen_unary(state: &mut State, op: u32, dest: &R, src: &Src, i: &Ins) -> Result<(), Error> {
+fn gen_unary(state: &mut State, op: u32, dest: R, src: &Src, i: &Ins) -> Result<(), Error> {
     if let Some(src) = src.as_gpr(&state.cpu_info) {
         if op == OP_CMP {
             gen::reg_shifted(
@@ -1039,21 +942,21 @@ fn gen_unary(state: &mut State, op: u32, dest: &R, src: &Src, i: &Ins) -> Result
     Ok(())
 }
 
-fn gen_mov(state: &mut State, dest: &R, src: &Src, i: &Ins) -> Result<(), Error> {
-    if dest.rc(&state.cpu_info) != RegClass::GPR {
-        return Err(Error::BadRegClass(i.clone()));
-    }
-    if let Some(r) = src.as_gpr(&state.cpu_info) {
-        if &r != dest {
-            gen_unary(state, OP_MOV, dest, src, i);
-        }
-    } else if let Some(imm) = src.as_imm64() {
-        gen::ld_constant(state, dest.to_arm64(), imm);
-    } else {
-        return Err(Error::InvalidSrcArgument(i.clone()));
-    }
-    Ok(())
-}
+// fn gen_mov(state: &mut State, dest: &R, src: &Src, i: &Ins) -> Result<(), Error> {
+//     if dest.rc(&state.cpu_info) != RegClass::GPR {
+//         return Err(Error::BadRegClass(i.clone()));
+//     }
+//     if let Some(r) = src.as_gpr(&state.cpu_info) {
+//         if &r != dest {
+//             gen_unary(state, OP_MOV, dest, src, i);
+//         }
+//     } else if let Some(imm) = src.as_imm64() {
+//         gen::ld_constant(state, dest.to_arm64(), imm);
+//     } else {
+//         return Err(Error::InvalidSrcArgument(i.clone()));
+//     }
+//     Ok(())
+// }
 
 /// The push instruction on x86 is quite efficient and is great
 /// fo constant generation.

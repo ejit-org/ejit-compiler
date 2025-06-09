@@ -300,6 +300,7 @@ pub struct RegInfo {
     pub name: &'static str,
 }
 
+/// A desription of the CPU registers and their properties.
 pub struct CpuInfo {
     cpu_level: CpuLevel,
 
@@ -768,14 +769,6 @@ pub enum Ins {
     Push(Src),
     Pop(Src),
 
-    // Memory-based operations
-    // Addx(R, R, R, u32),
-    // Subx(R, R, R, u32),
-    // Mulx(R, R, R, u32),
-    // Udivx(R, R, R, u32),
-    // Sdivx(R, R, R, u32),
-    // Movx(R, R, u32),
-
     // Vector arithmetic
     Vadd(Type, Vsize, R, R, Src),
     Vsub(Type, Vsize, R, R, Src),
@@ -817,6 +810,9 @@ pub enum Ins {
 
     /// Constant data.
     D(Type, u64),
+
+    /// Multiple register move.
+    Movm(Box<[R]>, Box<[R]>),
 }
 
 pub trait Compiler {
@@ -825,53 +821,54 @@ pub trait Compiler {
     fn compile(&mut self, ins: &[Ins]) -> Result<CompilerResult, Error> {
         for i in ins {
             match i {
-                Ins::Label(value) => self.label(*value),
-                Ins::Enter(entry_info) => self.enter(entry_info),
-                Ins::Leave(entry_info) => self.leave(entry_info),
-                Ins::Addr(r, value) => self.addr(*r, *value),
-                Ins::Ld(ty, r, r1, offset) => self.ld(*ty, *r, *r1, *offset),
-                Ins::St(ty, r, r1, offset) => self.st(*ty, *r, *r1, *offset),
-                Ins::Vld(ty, vsize, r, r1, offset) => self.vld(*ty, *vsize, *r, *r1, *offset),
-                Ins::Vst(ty, vsize, r, r1, offset) => self.vst(*ty, *vsize, *r, *r1, *offset),
-                Ins::Add(r, r1, src) => self.add(*r, *r1, src),
-                Ins::Sub(r, r1, src) => self.sub(*r, *r1, src),
-                Ins::Adc(r, r1, src) => self.adc(*r, *r1, src),
-                Ins::Sbb(r, r1, src) => self.sbb(*r, *r1, src),
-                Ins::And(r, r1, src) => self.and(*r, *r1, src),
-                Ins::Or(r, r1, src) => self.or(*r, *r1, src),
-                Ins::Xor(r, r1, src) => self.xor(*r, *r1, src),
-                Ins::Shl(r, r1, src) => self.shl(*r, *r1, src),
-                Ins::Shr(r, r1, src) => self.shr(*r, *r1, src),
-                Ins::Sar(r, r1, src) => self.sar(*r, *r1, src),
-                Ins::Mul(r, r1, src) => self.mul(*r, *r1, src),
-                Ins::Udiv(r, r1, src) => self.udiv(*r, *r1, src),
-                Ins::Sdiv(r, r1, src) => self.sdiv(*r, *r1, src),
-                Ins::Mov(r, src) => self.mov(*r, src),
-                Ins::Cmp(r, src) => self.cmp(*r, src),
-                Ins::Not(r, src) => self.not(*r, src),
-                Ins::Neg(r, src) => self.neg(*r, src),
-                Ins::Push(src) => self.push(src),
-                Ins::Pop(src) => self.pop(src),
-                Ins::Vadd(ty, vsize, r, r1, src) => self.vadd(*ty, *vsize, *r, *r1, src),
-                Ins::Vsub(ty, vsize, r, r1, src) => self.vsub(*ty, *vsize, *r, *r1, src),
-                Ins::Vand(ty, vsize, r, r1, src) => self.vand(*ty, *vsize, *r, *r1, src),
-                Ins::Vor(ty, vsize, r, r1, src) => self.vor(*ty, *vsize, *r, *r1, src),
-                Ins::Vxor(ty, vsize, r, r1, src) => self.vxor(*ty, *vsize, *r, *r1, src),
-                Ins::Vshl(ty, vsize, r, r1, src) => self.vshl(*ty, *vsize, *r, *r1, src),
-                Ins::Vshr(ty, vsize, r, r1, src) => self.vshr(*ty, *vsize, *r, *r1, src),
-                Ins::Vmul(ty, vsize, r, r1, src) => self.vmul(*ty, *vsize, *r, *r1, src),
-                Ins::Vmov(ty, vsize, r, src) => self.vmov(*ty, *vsize, *r, src),
-                Ins::Vrecpe(ty, vsize, r, src) => self.vrecpe(*ty, *vsize, *r, src),
-                Ins::Vrsqrte(ty, vsize, r, src) => self.vrsqrte(*ty, *vsize, *r, src),
-                Ins::Call(call_info) => self.call(call_info),
-                Ins::CallLocal(value) => self.call_local(*value),
-                Ins::Ci(r) => self.ci(*r),
-                Ins::Bi(r) => self.bi(*r),
-                Ins::Br(cond, value) => self.br(*cond, *value),
-                Ins::Jmp(value) => self.jmp(*value),
-                Ins::Cmov(cond, r, src) => self.cmov(*cond, *r, src),
-                Ins::Ret => self.ret(),
-                Ins::D(ty, value) => self.d(*ty, *value),
+                Ins::Label(value) => self.label(*value, i)?,
+                Ins::Enter(entry_info) => self.enter(entry_info, i)?,
+                Ins::Leave(entry_info) => self.leave(entry_info, i)?,
+                Ins::Addr(r, value) => self.addr(*r, *value, i)?,
+                Ins::Ld(ty, r, r1, offset) => self.ld(*ty, *r, *r1, *offset, i)?,
+                Ins::St(ty, r, r1, offset) => self.st(*ty, *r, *r1, *offset, i)?,
+                Ins::Vld(ty, vsize, r, r1, offset) => self.vld(*ty, *vsize, *r, *r1, *offset, i)?,
+                Ins::Vst(ty, vsize, r, r1, offset) => self.vst(*ty, *vsize, *r, *r1, *offset, i)?,
+                Ins::Add(r, r1, src) => self.add(*r, *r1, src, i)?,
+                Ins::Sub(r, r1, src) => self.sub(*r, *r1, src, i)?,
+                Ins::Adc(r, r1, src) => self.adc(*r, *r1, src, i)?,
+                Ins::Sbb(r, r1, src) => self.sbb(*r, *r1, src, i)?,
+                Ins::And(r, r1, src) => self.and(*r, *r1, src, i)?,
+                Ins::Or(r, r1, src) => self.or(*r, *r1, src, i)?,
+                Ins::Xor(r, r1, src) => self.xor(*r, *r1, src, i)?,
+                Ins::Shl(r, r1, src) => self.shl(*r, *r1, src, i)?,
+                Ins::Shr(r, r1, src) => self.shr(*r, *r1, src, i)?,
+                Ins::Sar(r, r1, src) => self.sar(*r, *r1, src, i)?,
+                Ins::Mul(r, r1, src) => self.mul(*r, *r1, src, i)?,
+                Ins::Udiv(r, r1, src) => self.udiv(*r, *r1, src, i)?,
+                Ins::Sdiv(r, r1, src) => self.sdiv(*r, *r1, src, i)?,
+                Ins::Mov(r, src) => self.mov(*r, src, i)?,
+                Ins::Cmp(r, src) => self.cmp(*r, src, i)?,
+                Ins::Not(r, src) => self.not(*r, src, i)?,
+                Ins::Neg(r, src) => self.neg(*r, src, i)?,
+                Ins::Push(src) => self.push(src, i)?,
+                Ins::Pop(src) => self.pop(src, i)?,
+                Ins::Vadd(ty, vsize, r, r1, src) => self.vadd(*ty, *vsize, *r, *r1, src, i)?,
+                Ins::Vsub(ty, vsize, r, r1, src) => self.vsub(*ty, *vsize, *r, *r1, src, i)?,
+                Ins::Vand(ty, vsize, r, r1, src) => self.vand(*ty, *vsize, *r, *r1, src, i)?,
+                Ins::Vor(ty, vsize, r, r1, src) => self.vor(*ty, *vsize, *r, *r1, src, i)?,
+                Ins::Vxor(ty, vsize, r, r1, src) => self.vxor(*ty, *vsize, *r, *r1, src, i)?,
+                Ins::Vshl(ty, vsize, r, r1, src) => self.vshl(*ty, *vsize, *r, *r1, src, i)?,
+                Ins::Vshr(ty, vsize, r, r1, src) => self.vshr(*ty, *vsize, *r, *r1, src, i)?,
+                Ins::Vmul(ty, vsize, r, r1, src) => self.vmul(*ty, *vsize, *r, *r1, src, i)?,
+                Ins::Vmov(ty, vsize, r, src) => self.vmov(*ty, *vsize, *r, src, i)?,
+                Ins::Vrecpe(ty, vsize, r, src) => self.vrecpe(*ty, *vsize, *r, src, i)?,
+                Ins::Vrsqrte(ty, vsize, r, src) => self.vrsqrte(*ty, *vsize, *r, src, i)?,
+                Ins::Call(call_info) => self.call(call_info, i)?,
+                Ins::CallLocal(value) => self.call_local(*value, i)?,
+                Ins::Ci(r) => self.ci(*r, i)?,
+                Ins::Bi(r) => self.bi(*r, i)?,
+                Ins::Br(cond, value) => self.br(*cond, *value, i)?,
+                Ins::Jmp(value) => self.jmp(*value, i)?,
+                Ins::Cmov(cond, r, src) => self.cmov(*cond, *r, src, i)?,
+                Ins::Ret => self.ret(i)?,
+                Ins::D(ty, value) => self.d(*ty, *value, i)?,
+                Ins::Movm(dest, src) => self.movm(dest, src, i)?,
             }
         }
         let state = self.state();
@@ -880,94 +877,137 @@ pub trait Compiler {
     }
 
     // Remember a PC-rel location.
-    fn label(&mut self, value: u32) {
+    fn label(&mut self, value: u32, i: &Ins) -> Result<(), Error> {
         let state = self.state();
-        state.labels.push((value, state.code.len()));
+        let loc = state.code.len();
+        state.labels.push((value, loc));
+        Ok(())
     }
 
     // Function entry & exit: Adjust sp by at least n bytes.
-    fn enter(&mut self, entry_info: &EntryInfo);
-    fn leave(&mut self, entry_info: &EntryInfo);
+    fn enter(&mut self, entry_info: &EntryInfo, i: &Ins) -> Result<(), Error> {
+        let scratch = entry_info.stack_size + 15 & !15;
+        let saves = entry_info.saves.len() * 8 + 15 & !15;
+        let spdiff = scratch + saves;
+        let sp = self.state().cpu_info.sp();
+        if spdiff != 0 {
+            let imm = &spdiff.into();
+            self.sub(sp, sp, imm, i)?;
+        }
+    
+        for (idx, r) in entry_info.saves.iter().copied().enumerate() {
+            self.st(Type::U64, r, sp, (scratch + idx * 8) as i32, i)?;
+        }
+    
+        let args_src : Box<[R]> = self.state().cpu_info.args().iter().take(entry_info.args.len()).cloned().collect();
+        self.movm(&entry_info.args, &args_src, i)?;
+    
+        Ok(())
+    }
+
+    fn leave(&mut self, entry_info: &EntryInfo, i: &Ins) -> Result<(), Error> {
+        todo!();
+    }
 
     // Constants
-    fn addr(&mut self, reg: R, value: u32);
+    fn addr(&mut self, reg: R, value: u32, i: &Ins) -> Result<(), Error>;
 
     // Mem
-    fn ld(&mut self, ty: Type, reg1: R, reg2: R, offset: i32);
-    fn st(&mut self, ty: Type, reg1: R, reg2: R, offset: i32);
-    fn vld(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32);
-    fn vst(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32);
+    fn ld(&mut self, ty: Type, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error>;
+    fn st(&mut self, ty: Type, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error>;
+    fn vld(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error>;
+    fn vst(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error>;
 
     // Integer Arithmetic
-    fn add(&mut self, reg1: R, reg2: R, src: &Src);
-    fn sub(&mut self, reg1: R, reg2: R, src: &Src);
-    fn adc(&mut self, reg1: R, reg2: R, src: &Src);
-    fn sbb(&mut self, reg1: R, reg2: R, src: &Src);
-    fn and(&mut self, reg1: R, reg2: R, src: &Src);
-    fn or(&mut self, reg1: R, reg2: R, src: &Src);
-    fn xor(&mut self, reg1: R, reg2: R, src: &Src);
-    fn shl(&mut self, reg1: R, reg2: R, src: &Src);
-    fn shr(&mut self, reg1: R, reg2: R, src: &Src);
-    fn sar(&mut self, reg1: R, reg2: R, src: &Src);
-    fn mul(&mut self, reg1: R, reg2: R, src: &Src);
-    fn udiv(&mut self, reg1: R, reg2: R, src: &Src);
-    fn sdiv(&mut self, reg1: R, reg2: R, src: &Src);
+    fn add(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn sub(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn adc(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn sbb(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn and(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn or(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn xor(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn shl(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn shr(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn sar(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn mul(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn udiv(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn sdiv(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
 
-    fn mov(&mut self, reg: R, src: &Src);
-    fn cmp(&mut self, reg: R, src: &Src);
-    fn not(&mut self, reg: R, src: &Src);
-    fn neg(&mut self, reg: R, src: &Src);
-    fn push(&mut self, src: &Src);
-    fn pop(&mut self, src: &Src);
+    fn mov(&mut self, reg: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn cmp(&mut self, reg: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn not(&mut self, reg: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn neg(&mut self, reg: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn push(&mut self, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn pop(&mut self, src: &Src, i: &Ins) -> Result<(), Error>;
 
     // Vector arithmetic
-    fn vadd(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src);
-    fn vsub(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src);
-    fn vand(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src);
-    fn vor(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src);
-    fn vxor(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src);
-    fn vshl(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src);
-    fn vshr(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src);
-    fn vmul(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src);
+    fn vadd(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn vsub(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn vand(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn vor(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn vxor(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn vshl(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn vshr(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn vmul(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error>;
 
-    fn vmov(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src);
-    fn vrecpe(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src);
-    fn vrsqrte(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src);
+    fn vmov(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn vrecpe(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src, i: &Ins) -> Result<(), Error>;
+    fn vrsqrte(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src, i: &Ins) -> Result<(), Error>;
 
     // Control flow
-    fn call(&mut self, call_info: &CallInfo);
-    fn call_local(&mut self, value: u32);
+    fn call(&mut self, call_info: &CallInfo, i: &Ins) -> Result<(), Error>;
+    fn call_local(&mut self, value: u32, i: &Ins) -> Result<(), Error>;
 
     /// Call indirect using stack or R(30)
-    fn ci(&mut self, reg: R);
+    fn ci(&mut self, reg: R, i: &Ins) -> Result<(), Error>;
 
     /// Branch indirect
-    fn bi(&mut self, reg: R);
+    fn bi(&mut self, reg: R, i: &Ins) -> Result<(), Error>;
 
     /// Use the flags to branch conditionally
     /// Only after a Cmp
-    fn br(&mut self, cond: Cond, value: u32);
-    fn jmp(&mut self, value: u32);
+    fn br(&mut self, cond: Cond, value: u32, i: &Ins) -> Result<(), Error>;
+    fn jmp(&mut self, value: u32, i: &Ins) -> Result<(), Error>;
 
-    fn cmov(&mut self, cond: Cond, reg: R, src: &Src);
+    fn cmov(&mut self, cond: Cond, reg: R, src: &Src, i: &Ins) -> Result<(), Error>;
 
     /// Return using stack or R(30)
-    fn ret(&mut self);
+    fn ret(&mut self, i: &Ins) -> Result<(), Error>;
 
     /// Constant data
-    fn d(&mut self, ty: Type, value: u64) {
-        let bytes = match ty {
-            Type::U8 => value.to_le_bytes()[0..1].to_vec(),
-            Type::U16 => value.to_le_bytes()[0..2].to_vec(),
-            Type::U32 => value.to_le_bytes()[0..4].to_vec(),
-            Type::U64 => value.to_le_bytes().to_vec(),
-            Type::S8 => (value as i8).to_le_bytes()[0..1].to_vec(),
-            Type::S16 => (value as i16).to_le_bytes()[0..2].to_vec(),
-            Type::S32 => (value as i32).to_le_bytes()[0..4].to_vec(),
-            Type::S64 => (value as i64).to_le_bytes().to_vec(),
-            _ => unimplemented!(), // TODO: support more types
-        };
-        self.state().code.extend(bytes);
+    fn d(&mut self, ty: Type, value: u64, i: &Ins) -> Result<(), Error> {
+        let code = &mut self.state().code;
+        match ty {
+            Type::U8 => code.extend((value as u8).to_le_bytes()),
+            Type::U16 => code.extend((value as u16).to_le_bytes()),
+            Type::U32 => code.extend((value as u32).to_le_bytes()),
+            Type::U64 => code.extend((value as u64).to_le_bytes()),
+            _ => return Err(Error::InvalidDataType(i.clone())),
+        }
+        Ok(())
+    }
+
+    fn movm(&mut self, dest: &[R], src: &[R], i: &Ins) -> Result<(), Error> {
+        if dest.len() != src.len() {
+            return Err(Error::InvalidArgs);
+        }
+        let mut pops = Vec::new();
+        for j in 0..dest.len() {
+            let d = dest[j];
+            let s = src[j];
+            if d != s {
+                if src[j + 1..].contains(&d) {
+                    self.push(&s.into(), i)?;
+                    pops.push(d);
+                } else {
+                    self.mov(d, &s.into(), i)?;
+                }
+            }
+        }
+        for d in pops.into_iter().rev() {
+            self.pop(&d.into(), i)?;
+        }
+        Ok(())
     }
 }
 
@@ -1079,11 +1119,6 @@ impl Executable {
         unsafe {
             std::slice::from_raw_parts(self.bytes, self.len).to_vec()
         }
-    }
-
-    /// See https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=000001eb+c0035fd6&arch=arm64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly
-    pub fn fmt_32(&self) -> String {
-        self.to_bytes().chunks_exact(4).map(|c| format!("{:08x}", u32::from_be_bytes(c.try_into().unwrap()))).collect::<Vec<String>>().join(" ")
     }
 
     pub fn fmt_x86_url(&self) -> String {

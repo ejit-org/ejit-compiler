@@ -404,183 +404,175 @@ impl Compiler for X86_64Compiler {
         &mut self.state
     }
 
-    fn enter(&mut self, entry_info: &EntryInfo) {
+    fn addr(&mut self, reg: R, value: u32, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn leave(&mut self, entry_info: &EntryInfo) {
+    fn ld(&mut self, ty: Type, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn addr(&mut self, reg: R, value: u32) {
+    fn st(&mut self, ty: Type, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn ld(&mut self, ty: Type, reg1: R, reg2: R, offset: i32) {
+    fn vld(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn st(&mut self, ty: Type, reg1: R, reg2: R, offset: i32) {
+    fn vst(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vld(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32) {
+    fn add(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vst(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32) {
+    fn sub(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn add(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn adc(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn sub(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn sbb(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn adc(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn and(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn sbb(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn or(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn and(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn xor(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn or(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn shl(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn xor(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn shr(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn shl(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn sar(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn shr(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn mul(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn sar(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn udiv(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn mul(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn sdiv(&mut self, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn udiv(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn mov(&mut self, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn sdiv(&mut self, reg1: R, reg2: R, src: &Src) {
+    fn cmp(&mut self, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn mov(&mut self, reg: R, src: &Src) {
+    fn not(&mut self, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn cmp(&mut self, reg: R, src: &Src) {
+    fn neg(&mut self, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn not(&mut self, reg: R, src: &Src) {
+    fn push(&mut self, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn neg(&mut self, reg: R, src: &Src) {
+    fn pop(&mut self, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn push(&mut self, src: &Src) {
+    fn vadd(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn pop(&mut self, src: &Src) {
+    fn vsub(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vadd(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+    fn vand(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vsub(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+    fn vor(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vand(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+    fn vxor(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vor(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+    fn vshl(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vxor(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+    fn vshr(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vshl(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+    fn vmul(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vshr(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+    fn vmov(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vmul(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src) {
+    fn vrecpe(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vmov(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src) {
+    fn vrsqrte(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vrecpe(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src) {
+    fn call(&mut self, call_info: &CallInfo, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vrsqrte(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src) {
+    fn call_local(&mut self, value: u32, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn call(&mut self, call_info: &CallInfo) {
+    fn ci(&mut self, reg: R, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn call_local(&mut self, value: u32) {
+    fn bi(&mut self, reg: R, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn ci(&mut self, reg: R) {
+    fn br(&mut self, cond: Cond, value: u32, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn bi(&mut self, reg: R) {
+    fn jmp(&mut self, value: u32, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn br(&mut self, cond: Cond, value: u32) {
+    fn cmov(&mut self, cond: Cond, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn jmp(&mut self, value: u32) {
-        todo!()
-    }
-
-    fn cmov(&mut self, cond: Cond, reg: R, src: &Src) {
-        todo!()
-    }
-
-    fn ret(&mut self) {
+    fn ret(&mut self, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 }
