@@ -1,5 +1,8 @@
+//! See 
+
 use crate::{
-    CallInfo, CompilerResult, Cond, CpuInfo, CpuLevel, EntryInfo, Error, Executable, Fixup, Compiler, Ins, PcRel4, RegClass, RegInfo, Scale, Src, State, Type, Vsize, R
+    CallInfo, Compiler, CompilerResult, Cond, CpuInfo, CpuLevel, EntryInfo, Error, Executable,
+    Fixup, Ins, PcRel, RegClass, RegInfo, Scale, Src, State, Type, Vsize, R,
 };
 
 pub mod regs {
@@ -77,80 +80,79 @@ pub mod regs {
 
 // See https://github.com/ARM-software/abi-aa/blob/main/sysvabi64/sysvabi64.rst
 // https://en.wikipedia.org/wiki/Calling_convention
-const REG_INFO : &[RegInfo] = &[
+const REG_INFO: &[RegInfo] = &[
     // x0-x7
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(0), ret: Some(0), name: "x0" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(1), ret: Some(1), name: "x1" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(2), ret: Some(2), name: "x2" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(3), ret: Some(3), name: "x3" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(4), ret: Some(4), name: "x4" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(5), ret: Some(5), name: "x5" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(6), ret: Some(6), name: "x6" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(7), ret: Some(7), name: "x7" },
+    RegInfo::new(RegClass::GPR, false, false, false, Some(0), Some(0), "x0"),
+    RegInfo::new(RegClass::GPR, false, false, false, Some(1), Some(1), "x1"),
+    RegInfo::new(RegClass::GPR, false, false, false, Some(2), Some(2), "x2"),
+    RegInfo::new(RegClass::GPR, false, false, false, Some(3), Some(3), "x3"),
+    RegInfo::new(RegClass::GPR, false, false, false, Some(4), Some(4), "x4"),
+    RegInfo::new(RegClass::GPR, false, false, false, Some(5), Some(5), "x5"),
+    RegInfo::new(RegClass::GPR, false, false, false, Some(6), Some(6), "x6"),
+    RegInfo::new(RegClass::GPR, false, false, false, Some(7), Some(7), "x7"),
     // x8-x15
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: true, arg: None, ret: None, name: "x8" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "x9" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "x10" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "x11" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "x12" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "x13" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "x14" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "x15" },
+    RegInfo::new(RegClass::GPR, false, false, true, None, None, "x8"),
+    RegInfo::new(RegClass::GPR, false, true, false, None, None, "x9"),
+    RegInfo::new(RegClass::GPR, false, true, false, None, None, "x10"),
+    RegInfo::new(RegClass::GPR, false, true, false, None, None, "x11"),
+    RegInfo::new(RegClass::GPR, false, true, false, None, None, "x12"),
+    RegInfo::new(RegClass::GPR, false, true, false, None, None, "x13"),
+    RegInfo::new(RegClass::GPR, false, true, false, None, None, "x14"),
+    RegInfo::new(RegClass::GPR, false, true, false, None, None, "x15"),
     // x16-x23
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: None, ret: None, name: "x16" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: None, ret: None, name: "x17" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: true, arg: None, ret: None, name: "x18" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x19" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x20" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x21" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x22" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x23" },
+    RegInfo::new(RegClass::GPR, false, false, false, None, None, "x16"),
+    RegInfo::new(RegClass::GPR, false, false, false, None, None, "x17"),
+    RegInfo::new(RegClass::GPR, false, false, true, None, None, "x18"),
+    RegInfo::new(RegClass::GPR, true, true, false, None, None, "x19"),
+    RegInfo::new(RegClass::GPR, true, true, false, None, None, "x20"),
+    RegInfo::new(RegClass::GPR, true, true, false, None, None, "x21"),
+    RegInfo::new(RegClass::GPR, true, true, false, None, None, "x22"),
+    RegInfo::new(RegClass::GPR, true, true, false, None, None, "x23"),
     // x24-x31
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x24" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x25" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x26" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x27" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "x28" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: false, special: false, arg: None, ret: None, name: "x29" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: false, special: true, arg: None, ret: None, name: "x30" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: true, scratch: false, special: true, arg: None, ret: None, name: "x31" },
-
+    RegInfo::new(RegClass::GPR, true, true, false, None, None, "x24"),
+    RegInfo::new(RegClass::GPR, true, true, false, None, None, "x25"),
+    RegInfo::new(RegClass::GPR, true, true, false, None, None, "x26"),
+    RegInfo::new(RegClass::GPR, true, true, false, None, None, "x27"),
+    RegInfo::new(RegClass::GPR, true, true, false, None, None, "x28"),
+    RegInfo::new(RegClass::GPR, true, false, false, None, None, "x29"),
+    RegInfo::new(RegClass::GPR, true, false, true, None, None, "x30"),
+    RegInfo::new(RegClass::GPR, true, false, true, None, None, "x31"),
     // v0-v7
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(0), ret: Some(0), name: "v0" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(1), ret: Some(1), name: "v1" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(2), ret: Some(2), name: "v2" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(3), ret: Some(3), name: "v3" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(4), ret: Some(4), name: "v4" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(5), ret: Some(5), name: "v5" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(6), ret: Some(6), name: "v6" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(7), ret: Some(7), name: "v7" },
+    RegInfo::new(RegClass::VREG, false, false, false, Some(0), Some(0), "v0"),
+    RegInfo::new(RegClass::VREG, false, false, false, Some(1), Some(1), "v1"),
+    RegInfo::new(RegClass::VREG, false, false, false, Some(2), Some(2), "v2"),
+    RegInfo::new(RegClass::VREG, false, false, false, Some(3), Some(3), "v3"),
+    RegInfo::new(RegClass::VREG, false, false, false, Some(4), Some(4), "v4"),
+    RegInfo::new(RegClass::VREG, false, false, false, Some(5), Some(5), "v5"),
+    RegInfo::new(RegClass::VREG, false, false, false, Some(6), Some(6), "v6"),
+    RegInfo::new(RegClass::VREG, false, false, false, Some(7), Some(7), "v7"),
     // v8-v15
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "v8" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "v9" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "v10" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "v11" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "v12" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "v13" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "v14" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "v15" },
+    RegInfo::new(RegClass::VREG, true, true, false, None, None, "v8"),
+    RegInfo::new(RegClass::VREG, true, true, false, None, None, "v9"),
+    RegInfo::new(RegClass::VREG, true, true, false, None, None, "v10"),
+    RegInfo::new(RegClass::VREG, true, true, false, None, None, "v11"),
+    RegInfo::new(RegClass::VREG, true, true, false, None, None, "v12"),
+    RegInfo::new(RegClass::VREG, true, true, false, None, None, "v13"),
+    RegInfo::new(RegClass::VREG, true, true, false, None, None, "v14"),
+    RegInfo::new(RegClass::VREG, true, true, false, None, None, "v15"),
     // v16-v23
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v16" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v17" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v18" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v19" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v20" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v21" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v22" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v23" },
+    RegInfo::new(RegClass::VREG, false, true, false, None, None, "v16"),
+    RegInfo::new(RegClass::VREG, false, true, false, None, None, "v17"),
+    RegInfo::new(RegClass::VREG, false, true, false, None, None, "v18"),
+    RegInfo::new(RegClass::VREG, false, true, false, None, None, "v19"),
+    RegInfo::new(RegClass::VREG, false, true, false, None, None, "v20"),
+    RegInfo::new(RegClass::VREG, false, true, false, None, None, "v21"),
+    RegInfo::new(RegClass::VREG, false, true, false, None, None, "v22"),
+    RegInfo::new(RegClass::VREG, false, true, false, None, None, "v23"),
     // v24-v31
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v24" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v25" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v26" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v27" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v28" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v29" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v30" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "v31" },
+    RegInfo::new(RegClass::VREG, false, true, false, None, None, "v24"),
+    RegInfo::new(RegClass::VREG, false, true, false, None, None, "v25"),
+    RegInfo::new(RegClass::VREG, false, true, false, None, None, "v26"),
+    RegInfo::new(RegClass::VREG, false, true, false, None, None, "v27"),
+    RegInfo::new(RegClass::VREG, false, true, false, None, None, "v28"),
+    RegInfo::new(RegClass::VREG, false, true, false, None, None, "v29"),
+    RegInfo::new(RegClass::VREG, false, true, false, None, None, "v30"),
+    RegInfo::new(RegClass::VREG, false, true, false, None, None, "v31"),
 ];
 
 pub fn native_compiler(cpu_info: CpuInfo) -> Aarch64Compiler {
@@ -161,7 +163,7 @@ pub fn native_cpu_info() -> CpuInfo {
     cpu_info(CpuLevel::Simd128)
 }
 
-/// 
+///
 pub fn cpu_info(cpu_level: CpuLevel) -> CpuInfo {
     // let compiler = Aarch64Compiler::new(&CpuInfo::default());
 
@@ -241,6 +243,102 @@ const OP_BR: Optype = 0xd61f0000;
 const OP_BLR: Optype = 0xd63f0000;
 const OP_BCC: Optype = 0x54000000;
 const OP_B: Optype = 0x14000000;
+const OP_BL : Optype = 0x94000000; // 	bl <label>
+
+/// https://developer.arm.com/documentation/ddi0602/2024-03/Base-Instructions/LDR--literal---Load-Register--literal--
+const OP_LDR_LITERAL_U64 : Optype = 0x58000000; //  ldr x0, <label>
+const OP_LDR_LITERAL_V32 : Optype = 0x1c000000; //  ldr s0, <label>
+const OP_LDR_LITERAL_V64 : Optype = 0x5c000000; //  ldr d0, <label>
+const OP_LDR_LITERAL_V128 : Optype = 0x9c000000; //  ldr q0, <label>
+
+const OP_LD_U8_R_IMM12: Optype = 0x39400000; // 	ldrb	w0, [x0]
+const OP_LD_U8_R_R: Optype = 0x38606800; // 	ldrb	w0, [x0, x0]
+const OP_LD_U16_R_IMM12: Optype = 0x79400000; // 	ldrh	w0, [x0]
+const OP_LD_U16_R_R: Optype = 0x78606800; // 	ldrh	w0, [x0, x0]
+const OP_LD_U32_R_IMM12: Optype = 0xb9400000; // 	ldr	w0, [x0]
+const OP_LD_U32_R_R: Optype = 0xb8606800; // 	ldr	w0, [x0, x0]
+const OP_LD_U64_R_IMM12: Optype = 0xf9400000; // 	ldr	x0, [x0]
+const OP_LD_U64_R_R: Optype = 0xf8606800; // 	ldr	x0, [x0, x0]
+const OP_LD_S8_R_IMM12 : Optype = 0x39c00000; // 	ldrsb	w0, [x0]
+const OP_LD_S8_R_R : Optype = 0x38e06800; // 	ldrsb	w0, [x0, x0]
+const OP_LD_S16_R_IMM12 : Optype = 0x79c00000; // 	ldrsh	w0, [x0]
+const OP_LD_S16_R_R : Optype = 0x78e06800; // 	ldrsh	w0, [x0, x0]
+const OP_LD_S32_R_IMM12 : Optype = 0xb9800000; // 	ldrsw	x0, [x0]
+const OP_LD_S32_R_R : Optype = 0xb8a06800; // 	ldrsw	x0, [x0, x0]
+const OP_LD_S64_R_IMM12 : Optype = 0xf9400000; // 	ldr	x0, [x0]
+const OP_LD_S64_R_R : Optype = 0xf8606800; // 	ldr	x0, [x0, x0]
+const OP_ST_8_R_IMM12 : Optype = 0x39000000; // 	strb	w0, [x0]
+const OP_ST_8_R_R : Optype = 0x38206800; // 	strb	w0, [x0, x0]
+const OP_ST_16_R_IMM12 : Optype = 0x79000000; // 	strh	w0, [x0]
+const OP_ST_16_R_R : Optype = 0x78206800; // 	strh	w0, [x0, x0]
+const OP_ST_32_R_IMM12 : Optype = 0xb9000000; // 	str	w0, [x0]
+const OP_ST_32_R_R : Optype = 0xb8206800; // 	str	w0, [x0, x0]
+const OP_ST_64_R_IMM12 : Optype = 0xf9000000; // 	str	x0, [x0]
+const OP_ST_64_R_R : Optype = 0xf8206800; // 	str	x0, [x0, x0]
+
+const OP_PUSH : Optype = 0xf81f8fe0; // 	str	x0, [sp, #-8]!
+const OP_POP : Optype = 0xf84087e0; // 	ldr	x0, [sp], #8
+
+// auto
+const OP_AND_V8 : Optype = 0x0e201c00; // and	v0.8b, v0.8b, v0.8b
+const OP_AND_V16 : Optype = 0x4e201c00; // and	v0.16b, v0.16b, v0.16b
+const OP_ORR_V8 : Optype = 0x0ea01c00; // mov	v0.8b, v0.8b
+const OP_ORR_V16 : Optype = 0x4ea01c00; // mov	v0.16b, v0.16b
+const OP_EOR_V8 : Optype = 0x2e201c00; // eor	v0.8b, v0.8b, v0.8b
+const OP_EOR_V16 : Optype = 0x6e201c00; // eor	v0.16b, v0.16b, v0.16b
+const OP_LSL_V8B_IMM : Optype = 0x0f085400; // shl	v0.8b, v0.8b, #0
+const OP_LSL_V16B_IMM : Optype = 0x4f085400; // shl	v0.16b, v0.16b, #0
+const OP_LSL_V4H_IMM : Optype = 0x0f105400; // shl	v0.4h, v0.4h, #0
+const OP_LSL_V8H_IMM : Optype = 0x4f105400; // shl	v0.8h, v0.8h, #0
+const OP_LSL_V2S_IMM : Optype = 0x0f205400; // shl	v0.2s, v0.2s, #0
+const OP_LSL_V4S_IMM : Optype = 0x4f205400; // shl	v0.4s, v0.4s, #0
+const OP_LSL_V2D_IMM : Optype = 0x4f405400; // shl	v0.2d, v0.2d, #0
+const OP_RET : Optype = 0xd65f03c0; // ret
+
+const OP_VADD : &[(Type, Vsize, Optype)] = &[
+    (Type::U8, Vsize::V64, 0x0e208400), // 	add	v0.8b, v0.8b, v0.8b
+    (Type::U8, Vsize::V128, 0x4e208400), // 	add	v0.16b, v0.16b, v0.16b
+    (Type::U16, Vsize::V64, 0x0e608400), // 	add	v0.4h, v0.4h, v0.4h
+    (Type::U16, Vsize::V128, 0x4e608400), // 	add	v0.8h, v0.8h, v0.8h
+    (Type::U32, Vsize::V64, 0x0ea08400), // 	add	v0.2s, v0.2s, v0.2s
+    (Type::U32, Vsize::V128, 0x4ea08400), // 	add	v0.4s, v0.4s, v0.4s
+    (Type::U64, Vsize::V128, 0x4ee08400), // 	add	v0.2d, v0.2d, v0.2d
+    (Type::F32, Vsize::V32, 0x1e202800), // 	fadd	s0, s0, s0
+    (Type::F64, Vsize::V64, 0x1e602800), // 	fadd	d0, d0, d0
+    (Type::F32, Vsize::V64, 0x0e20d400), // 	fadd	v0.2s, v0.2s, v0.2s
+    (Type::F32, Vsize::V128, 0x4e20d400), // 	fadd	v0.4s, v0.4s, v0.4s
+    (Type::F64, Vsize::V128, 0x4e60d400), // 	fadd	v0.2d, v0.2d, v0.2d
+];
+
+const OP_VSUB : &[(Type, Vsize, Optype)] = &[
+    (Type::U8, Vsize::V64, 0x2e208400), // sub	v0.8b, v0.8b, v0.8b
+    (Type::U8, Vsize::V128, 0x6e208400), // sub	v0.16b, v0.16b, v0.16b
+    (Type::U16, Vsize::V64, 0x2e608400), // sub	v0.4h, v0.4h, v0.4h
+    (Type::U16, Vsize::V128, 0x6e608400), // sub	v0.8h, v0.8h, v0.8h
+    (Type::U32, Vsize::V64, 0x2ea08400), // sub	v0.2s, v0.2s, v0.2s
+    (Type::U32, Vsize::V128, 0x6ea08400), // sub	v0.4s, v0.4s, v0.4s
+    (Type::U64, Vsize::V128, 0x6ee08400), // sub	v0.2d, v0.2d, v0.2d
+    (Type::F32, Vsize::V32, 0x1e203800), // fsub	s0, s0, s0
+    (Type::F64, Vsize::V64, 0x1e603800), // fsub	d0, d0, d0
+    (Type::F32, Vsize::V64, 0x0ea0d400), // fsub	v0.2s, v0.2s, v0.2s
+    (Type::F32, Vsize::V128, 0x4ea0d400), // fsub	v0.4s, v0.4s, v0.4s
+    (Type::F64, Vsize::V128, 0x4ee0d400), // fsub	v0.2d, v0.2d, v0.2d
+];
+
+const OP_VAND : &[(Vsize, Optype)] = &[
+    (Vsize::V64, OP_AND_V8),
+    (Vsize::V128, OP_AND_V16),
+];
+
+const OP_VORR : &[(Vsize, Optype)] = &[
+    (Vsize::V64, OP_ORR_V8),
+    (Vsize::V128, OP_ORR_V16),
+];
+
+const OP_VEOR : &[(Vsize, Optype)] = &[
+    (Vsize::V64, OP_EOR_V8),
+    (Vsize::V128, OP_EOR_V16),
+];
 
 impl Cond {
     fn to_arm64(&self) -> u32 {
@@ -269,6 +367,121 @@ impl Aarch64Compiler {
             state: State::new(cpu_info),
         }
     }
+
+    fn addsub(
+        &mut self,
+        ops: [u32; 2],
+        dest: R,
+        src1: R,
+        src2: &Src,
+        i: &Ins,
+    ) -> Result<(), Error> {
+        let state = self.state();
+        check_args(dest, src1, src2, i, state)?;
+        Ok(if let Some(src2) = src2.as_gpr(&state.cpu_info) {
+            let (rd, rn, rm) = (dest.to_arm64(), src1.to_arm64(), src2.to_arm64());
+            gen::reg_shifted(state, ops[0], 0, rm, 0, rn, rd)?;
+        } else if let Some(imm) = src2.as_imm64() {
+            let (rd, rn) = (dest.to_arm64(), src1.to_arm64());
+            if imm & !0xfff == 0 {
+                gen::imm_shifted(state, ops[1], 0, imm as u32, rn, rd)?;
+            } else if imm & !(0xfff << 12) == 0 {
+                gen::imm_shifted(state, ops[1], 1, (imm >> 12) as u32, rn, rd)?;
+            } else {
+                gen::ld_constant(state, regs::TMP.to_arm64(), imm)?;
+                gen::reg_shifted(state, ops[0], 0, regs::TMP.to_arm64(), 0, rn, rd)?;
+            }
+        } else {
+            return Err(Error::InvalidSrcArgument(i.clone()));
+        })
+    }
+
+    fn binary(&mut self, op: u32, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
+        let state = self.state();
+        check_args(dest, src1, src2, i, state)?;
+        Ok(if let Some(src2) = src2.as_gpr(&state.cpu_info) {
+            let (rd, rn, rm) = (dest.to_arm64(), src1.to_arm64(), src2.to_arm64());
+            gen::reg_shifted(state, op, 0, rm, 0, rn, rd)?;
+        } else if let Some(imm) = src2.as_imm64() {
+            let (rd, rn) = (dest.to_arm64(), src1.to_arm64());
+            if imm == 0 {
+                gen::reg_shifted(state, op, 0, regs::XZR.to_arm64(), 0, rn, rd)?;
+            } else {
+                gen::ld_constant(state, regs::TMP.to_arm64(), imm)?;
+                gen::reg_shifted(state, op, 0, regs::TMP.to_arm64(), 0, rn, rd)?;
+            }
+        } else {
+            return Err(Error::InvalidSrcArgument(i.clone()));
+        })
+    }
+
+    fn unary(&mut self, op: u32, dest: R, src: &Src, ctxt: &'static str) -> Result<(), Error> {
+        let state = self.state();
+        if let Some(src) = src.as_gpr(&state.cpu_info) {
+            if op == OP_CMP {
+                let (rm, rn, rd) = (dest.to_arm64(), src.to_arm64(), regs::XZR.to_arm64());
+                gen::reg_shifted(state, op, 0, rm, 0, rn, rd)?;
+            } else {
+                let (rm, rn, rd) = (src.to_arm64(), regs::XZR.to_arm64(), dest.to_arm64());
+                gen::reg_shifted(state, op, 0, rm, 0, rn, rd)?;
+            }
+        } else if let Some(imm) = src.as_imm64() {
+            match op {
+                OP_NEG => {
+                    gen::ld_constant(state, dest.to_arm64(), imm.wrapping_neg())?;
+                }
+                OP_MVN => {
+                    gen::ld_constant(state, dest.to_arm64(), !imm)?;
+                }
+                OP_CMP => {
+                    gen::ld_constant(state, regs::TMP.to_arm64(), imm)?;
+                    self.unary(op, dest, &regs::TMP.into(), "cmp");
+                }
+                OP_MOV => {
+                    gen::ld_constant(state, dest.to_arm64(), imm)?;
+                }
+                _ => unreachable!(),
+            }
+        } else {
+            return Err(Error::InvalidSrcArgument2(ctxt));
+        }
+        Ok(())
+    }
+    
+    fn vbinary_generic(&mut self, ops: &[(Type, Vsize, u32)], ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
+        if let Some((_, _, op)) = ops.iter().find(|(t, v, _)| *t == ty && *v == vsize) {
+            self.vbinary(*op, ty, vsize, dest, src1, src2, i)
+        } else {
+            Err(Error::InvalidType(i.clone()))
+        }
+    }
+    
+    fn vbinary_size_only(&mut self, ops: &[(Vsize, u32)], ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
+        if let Some((_, op)) = ops.iter().find(|(v, _)| *v == vsize) {
+            self.vbinary(*op, ty, vsize, dest, src1, src2, i)
+        } else {
+            Err(Error::InvalidType(i.clone()))
+        }
+    }
+    
+    fn vbinary(&mut self, op: u32, ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
+        let cpu_info = &self.state().cpu_info;
+        if
+            dest.rc(cpu_info) != RegClass::VREG ||
+            src1.rc(cpu_info) != RegClass::VREG
+        {
+            return Err(Error::BadRegClass(i.clone()));
+        }
+
+        if let Some(src2) = src2.as_vreg(cpu_info) {
+            gen::reg3(self.state(), op, dest.to_arm64(), src1.to_arm64(), src2.to_arm64());
+        } else if src2.is_imm64() {
+            todo!();
+        } else {
+            return Err(Error::InvalidSrcArgument(i.clone()));
+        }
+        Ok(())
+    }
 }
 
 impl Compiler for Aarch64Compiler {
@@ -276,225 +489,358 @@ impl Compiler for Aarch64Compiler {
         &mut self.state
     }
 
-    fn addr(&mut self, reg: R, value: u32, i: &Ins) -> Result<(), Error> {
+    fn addr(&mut self, dest: R, label: u32, i: &Ins) -> Result<(), Error> {
+        gen::adr(self.state(), dest.to_arm64(), label);
+        Ok(())
+    }
+
+    fn ld(&mut self, ty: Type, r: R, ra: R, offset: i32, i: &Ins) -> Result<(), Error> {
+        let (rn, rt) = (ra.to_arm64(), r.to_arm64());
+
+        let (imm12_op, rr_op) = match ty {
+            Type::U8 => (OP_LD_U8_R_IMM12, OP_LD_U8_R_R),
+            Type::U16 => (OP_LD_U16_R_IMM12, OP_LD_U16_R_R),
+            Type::U32 => (OP_LD_U32_R_IMM12, OP_LD_U32_R_R),
+            Type::U64 => (OP_LD_U64_R_IMM12, OP_LD_U64_R_R),
+            Type::S8 => (OP_LD_S8_R_IMM12, OP_LD_S8_R_R),
+            Type::S16 => (OP_LD_S16_R_IMM12, OP_LD_S16_R_R),
+            Type::S32 => (OP_LD_S32_R_IMM12, OP_LD_S32_R_R),
+            Type::S64 => (OP_LD_S64_R_IMM12, OP_LD_S64_R_R),
+            _ => {
+                return Err(Error::InvalidType(i.clone()));
+            }
+        };
+
+        let op = if offset >= 0 && offset < (1<<12+2) && offset % 4 == 0 {
+            let imm12 = offset as u32 >> 2;
+            imm12_op | imm12 << 10 | (rn << 5) | rt
+        } else {
+            // Fallback to loading the offset into a temporary register.
+            let rm = regs::TMP.to_arm64();
+            gen::ld_constant(self.state(), rm, offset as i64);
+            rr_op | rm << 16 | (rn << 5) | rt
+        };
+
+        self.state().push4(op);
+        Ok(())
+    }
+
+    fn st(&mut self, ty: Type, r: R, ra: R, offset: i32, i: &Ins) -> Result<(), Error> {
+        let (rn, rt) = (ra.to_arm64(), r.to_arm64());
+
+        let (imm12_op, rr_op) = match ty {
+            Type::U8 => (OP_ST_8_R_IMM12, OP_ST_8_R_R),
+            Type::U16 => (OP_ST_16_R_IMM12, OP_ST_16_R_R),
+            Type::U32 => (OP_ST_32_R_IMM12, OP_ST_32_R_R),
+            Type::U64 => (OP_ST_64_R_IMM12, OP_ST_64_R_R),
+            Type::S8 => (OP_ST_8_R_IMM12, OP_ST_8_R_R),
+            Type::S16 => (OP_ST_16_R_IMM12, OP_ST_16_R_R),
+            Type::S32 => (OP_ST_32_R_IMM12, OP_ST_32_R_R),
+            Type::S64 => (OP_ST_64_R_IMM12, OP_ST_64_R_R),
+            _ => {
+                return Err(Error::InvalidType(i.clone()));
+            }
+        };
+
+        let op = if offset >= 0 && offset < (1<<12+2) && offset % 4 == 0 {
+            let imm12 = offset as u32 >> 2;
+            imm12_op | imm12 << 10 | (rn << 5) | rt
+        } else {
+            // Fallback to loading the offset into a temporary register.
+            let rm = regs::TMP.to_arm64();
+            gen::ld_constant(self.state(), rm, offset as i64);
+            rr_op | rm << 16 | (rn << 5) | rt
+        };
+
+        self.state().push4(op);
+        Ok(())
+    }
+
+    fn vld(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        reg1: R,
+        reg2: R,
+        offset: i32,
+        i: &Ins,
+    ) -> Result<(), Error> {
         todo!()
     }
 
-    fn ld(&mut self, ty: Type, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn st(&mut self, ty: Type, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn vld(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn vst(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error> {
+    fn vst(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        reg1: R,
+        reg2: R,
+        offset: i32,
+        i: &Ins,
+    ) -> Result<(), Error> {
         todo!()
     }
 
     fn add(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
-        let state = self.state();
-        check_args(dest, src1, src2, i, state)?;
-        if let Some(src2) = src2.as_gpr(&state.cpu_info) {
-            let (rd, rn, rm) = (dest.to_arm64(), src1.to_arm64(), src2.to_arm64());
-            gen::reg_shifted(state, OP_ADDS, 0, rm, 0, rn, rd)?;
-        } else if let Some(imm) = src2.as_imm64() {
-            let (rd, rn) = (dest.to_arm64(), src1.to_arm64());
-            if imm & !0xfff == 0 {
-                gen::imm_shifted( state, OP_ADDI, 0, imm as u32, rn, rd)?;
-            } else if imm & !(0xfff << 12) == 0 {
-                gen::imm_shifted(state, OP_ADDI, 1, (imm >> 12) as u32, rn, rd)?;
-            } else {
-                gen::ld_constant(state, regs::TMP.to_arm64(), imm)?;
-                gen::reg_shifted(state, OP_ADDS, 0, regs::TMP.to_arm64(), 0, rn, rd)?;
-            }
-        } else {
-            return Err(Error::InvalidSrcArgument(i.clone()));
-        }
-        Ok(())
+        self.addsub([OP_ADDS, OP_ADDI], dest, src1, src2, i)
     }
 
     fn sub(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
-        let state = self.state();
-        check_args(dest, src1, src2, i, state)?;
-        if let Some(src2) = src2.as_gpr(&state.cpu_info) {
-            let (rd, rn, rm) = (dest.to_arm64(), src1.to_arm64(), src2.to_arm64());
-            gen::reg_shifted(state, OP_SUBS, 0, rm, 0, rn, rd)?;
-        } else if let Some(imm) = src2.as_imm64() {
-            let (rd, rn) = (dest.to_arm64(), src1.to_arm64());
-            if imm & !0xfff == 0 {
-                gen::imm_shifted( state, OP_SUBI, 0, imm as u32, rn, rd)?;
-            } else if imm & !(0xfff << 12) == 0 {
-                gen::imm_shifted(state, OP_SUBI, 1, (imm >> 12) as u32, rn, rd)?;
-            } else {
-                gen::ld_constant(state, regs::TMP.to_arm64(), imm)?;
-                gen::reg_shifted(state, OP_SUBS, 0, regs::TMP.to_arm64(), 0, rn, rd)?;
-            }
-        } else {
-            return Err(Error::InvalidSrcArgument(i.clone()));
-        }
-        Ok(())
+        self.addsub([OP_SUBS, OP_SUBI], dest, src1, src2, i)
     }
 
     fn adc(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
+        self.binary(OP_ADCS, dest, src1, src2, i)
     }
 
     fn sbb(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
+        self.binary(OP_SBCS, dest, src1, src2, i)
     }
 
     fn and(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
+        self.binary(OP_ANDS, dest, src1, src2, i)
     }
 
     fn or(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
+        self.binary(OP_ORR, dest, src1, src2, i)
     }
 
     fn xor(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
+        self.binary(OP_EOR, dest, src1, src2, i)
     }
 
     fn shl(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
+        self.binary(OP_LSL, dest, src1, src2, i)
     }
 
     fn shr(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
+        self.binary(OP_LSR, dest, src1, src2, i)
     }
 
     fn sar(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
+        self.binary(OP_ASR, dest, src1, src2, i)
     }
 
     fn mul(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
+        self.binary(OP_MUL, dest, src1, src2, i)
     }
 
     fn udiv(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
+        self.binary(OP_UDIV, dest, src1, src2, i)
     }
 
     fn sdiv(&mut self, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
+        self.binary(OP_SDIV, dest, src1, src2, i)
     }
 
-    fn mov(&mut self, dest: R, src: &Src, i: &Ins) -> Result<(), Error> {
+    fn mov<S: Into<Src>>(&mut self, dest: R, src: S) -> Result<&mut Self, Error> {
+        let src = src.into();
         let state = self.state();
         if dest.rc(&state.cpu_info) != RegClass::GPR {
-            return Err(Error::BadRegClass(i.clone()));
+            return Err(Error::BadRegClass2("mov", dest));
         }
         if let Some(r) = src.as_gpr(&state.cpu_info) {
             if r != dest {
-                gen_unary(state, OP_MOV, dest, src, i);
+                self.unary(OP_MOV, dest, &src, "mov");
             }
         } else if let Some(imm) = src.as_imm64() {
             gen::ld_constant(state, dest.to_arm64(), imm);
         } else {
+            return Err(Error::InvalidSrcArgument2("mov"));
+        }
+        Ok(self)
+    }
+
+    fn cmp(&mut self, dest: R, src: &Src, i: &Ins) -> Result<(), Error> {
+        self.unary(OP_CMP, dest, src, "cmp")
+    }
+
+    fn not(&mut self, dest: R, src: &Src, i: &Ins) -> Result<(), Error> {
+        self.unary(OP_MVN, dest, src, "not")
+    }
+
+    fn neg(&mut self, dest: R, src: &Src, i: &Ins) -> Result<(), Error> {
+        self.unary(OP_NEG, dest, src, "neg")
+    }
+
+    fn push(&mut self, src: &Src, i: &Ins) -> Result<(), Error> {
+        if let Some(r) = src.as_gpr(&self.state().cpu_info) {
+            if r == regs::SP {
+                return Err(Error::SpNotAllowed(i.clone()));
+            }
+            self.state().push4(OP_PUSH | r.to_arm64());
+        } else {
             return Err(Error::InvalidSrcArgument(i.clone()));
         }
         Ok(())
     }
 
-    fn cmp(&mut self, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn not(&mut self, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn neg(&mut self, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn push(&mut self, src: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
-    }
-
     fn pop(&mut self, src: &Src, i: &Ins) -> Result<(), Error> {
+        if let Some(r) = src.as_gpr(&self.state().cpu_info) {
+            if r == regs::SP {
+                return Err(Error::SpNotAllowed(i.clone()));
+            }
+            self.state().push4(OP_POP | r.to_arm64());
+        } else {
+            return Err(Error::InvalidSrcArgument(i.clone()));
+        }
+        Ok(())
+    }
+
+    fn vadd(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        dest: R,
+        src1: R,
+        src2: &Src,
+        i: &Ins,
+    ) -> Result<(), Error> {
+        self.vbinary_generic(OP_VADD, ty, vsize, dest, src1, src2, i)
+    }
+
+    fn vsub(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        dest: R,
+        src1: R,
+        src2: &Src,
+        i: &Ins,
+    ) -> Result<(), Error> {
+        self.vbinary_generic(OP_VSUB, ty, vsize, dest, src1, src2, i)
+    }
+
+    fn vand(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        dest: R,
+        src1: R,
+        src2: &Src,
+        i: &Ins,
+    ) -> Result<(), Error> {
+        self.vbinary_size_only(OP_VAND, ty, vsize, dest, src1, src2, i)
+    }
+
+    fn vor(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        dest: R,
+        src1: R,
+        src2: &Src,
+        i: &Ins,
+    ) -> Result<(), Error> {
+        self.vbinary_size_only(OP_VORR, ty, vsize, dest, src1, src2, i)
+    }
+
+    fn vxor(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        dest: R,
+        src1: R,
+        src2: &Src,
+        i: &Ins,
+    ) -> Result<(), Error> {
+        self.vbinary_size_only(OP_VEOR, ty, vsize, dest, src1, src2, i)
+    }
+
+    fn vshl(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        dest: R,
+        src1: R,
+        src2: &Src,
+        i: &Ins,
+    ) -> Result<(), Error> {
         todo!()
     }
 
-    fn vadd(&mut self, ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
+    fn vshr(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        dest: R,
+        src1: R,
+        src2: &Src,
+        i: &Ins,
+    ) -> Result<(), Error> {
         todo!()
     }
 
-    fn vsub(&mut self, ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
+    fn vmul(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        dest: R,
+        src1: R,
+        src2: &Src,
+        i: &Ins,
+    ) -> Result<(), Error> {
         todo!()
     }
 
-    fn vand(&mut self, ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
+    fn vmov(&mut self, ty: Type, vsize: Vsize, dest: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vor(&mut self, ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
+    fn vrecpe(&mut self, ty: Type, vsize: Vsize, dest: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vxor(&mut self, ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn vshl(&mut self, ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn vshr(&mut self, ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn vmul(&mut self, ty: Type, vsize: Vsize, dest: R, src1: R, src2: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn vmov(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn vrecpe(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn vrsqrte(&mut self, ty: Type, vsize: Vsize, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn call(&mut self, call_info: &CallInfo, i: &Ins) -> Result<(), Error> {
+    fn vrsqrte(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        dest: R,
+        src: &Src,
+        i: &Ins,
+    ) -> Result<(), Error> {
         todo!()
     }
 
     fn call_local(&mut self, value: u32, i: &Ins) -> Result<(), Error> {
-        todo!()
+        gen::branch(self.state(), OP_BL, value);
+        Ok(())
+    }
+
+    fn call_abs(&mut self, loc: u64, i: &Ins) -> Result<(), Error> {
+        let rm = regs::TMP.to_arm64();
+        gen::ld_constant(self.state(), rm, loc as i64);
+        gen::branch_indirect(self.state(), OP_BLR, rm);
+        Ok(())
     }
 
     fn ci(&mut self, reg: R, i: &Ins) -> Result<(), Error> {
-        todo!()
+        let rm = reg.to_arm64();
+        gen::branch_indirect(self.state(), OP_BLR, rm);
+        Ok(())
     }
 
     fn bi(&mut self, reg: R, i: &Ins) -> Result<(), Error> {
-        todo!()
+        let rm = reg.to_arm64();
+        gen::branch_indirect(self.state(), OP_BR, rm);
+        Ok(())
     }
 
     fn br(&mut self, cond: Cond, value: u32, i: &Ins) -> Result<(), Error> {
-        todo!()
+        Ok(())
     }
 
     fn jmp(&mut self, value: u32, i: &Ins) -> Result<(), Error> {
+        gen::branch(self.state(), OP_B, value);
+        Ok(())
+    }
+
+    fn cmov(&mut self, cond: Cond, dest: R, src: &Src, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn cmov(&mut self, cond: Cond, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn ret(&mut self, i: &Ins) -> Result<(), Error> {
-        todo!()
+    fn ret(&mut self) -> Result<&mut Self, Error> {
+        self.state().push4(OP_RET);
+        Ok(self)
     }
 }
 
@@ -510,505 +856,14 @@ fn check_args(dest: R, src1: R, src2: &Src, i: &Ins, state: &mut State) -> Resul
     Ok(())
 }
 
-fn gen_store(state: &mut State, ty: Type, r: R, ra: R, imm: i32, i: &Ins) -> Result<(), Error> {
-    // use Type::*;
-    // let op = match ty {
-    //     U8 | S8 => (OP_STB, false, 0),
-    //     U16 | S16 => (OP_STW, true, 0),
-    //     U32 | S32 => (OP_STD, false, 0),
-    //     U64 | S64 => (OP_STQ, false, 1),
-    //     _ => return Err(Error::InvalidType(i.clone())),
-    // };
-    // gen_load_store(state, op, pfx_66, w, &r, &ra, imm, i)?;
-    Ok(())
-}
-
-fn gen_load(state: &mut State, ty: Type, r: R, ra: R, imm: i32, i: &Ins) -> Result<(), Error> {
-    // use Type::*;
-    // let (op, pfx_66, w) = match ty {
-    //     U8 => (OP_LDZB, false, 1),
-    //     U16 => (OP_LDZW, true, 1),
-    //     U32 => (OP_LDZD, false, 0),
-    //     U64 => (OP_LDZQ, false, 1),
-    //     S8 => (OP_LDSB, false, 1),
-    //     S16 => (OP_LDSW, true, 1),
-    //     S32 => (OP_LDSD, false, 1),
-    //     S64 => (OP_LDSQ, false, 1),
-    //     _ => return Err(Error::InvalidType(i.clone())),
-    // };
-    // gen_load_store(state, op, pfx_66, w, &r, &ra, imm, i)?;
-    Ok(())
-}
-
-
-/// Generate a call including register assignments and saves.
-fn gen_call(state: &mut State, call_info: &CallInfo, i: &Ins) -> Result<(), Error> {
-    // for src in call_info.saves.iter() {
-    //     gen_push(state, src, i)?;
-    // }
-
-    // let mut num_iargs = 0;
-    // let mut num_vargs = 0;
-    // let mut bytes_pushed = 0;
-    // let mut movs = Vec::new();
-    // for arg in &call_info.args {
-    //     if arg.is_reg() || arg.is_imm64() {
-    //         if let Some(dest) = state.cpu_info.args.get(num_iargs).cloned() {
-    //             movs.push((dest, arg.clone()));
-    //             // gen_mov(state, &dest, &arg, i)?;
-    //             num_iargs += 1;
-    //         } else {
-    //             gen_push(state, &arg, i)?;
-    //             bytes_pushed += 8;
-    //         }
-    //     } else {
-    //         // TODO: vector/fp args
-    //         return Err(Error::InvalidSrcArgument(i.clone()));
-    //     }
-    // }
-
-    // // The parameter moves may break if an earlier dest is a later src.
-    // // Example:
-    // //    mov  rdi, rbx
-    // //    mov  rsi, rdi
-    // // Here we need to re-order.
-    // // Note: we will be in a pickle if there is a cycle, in which case we need to use an exchange.
-    // for i in 0..movs.len() {
-    //     let (dest, src) = movs[i].clone();
-    //     if movs[1..]
-    //         .iter()
-    //         .find(|(dest2, src2)| src2.as_gpr() == Some(dest))
-    //         .is_some()
-    //     {
-    //         movs.push((dest.clone(), src.clone()));
-    //         // Noop mov.
-    //         movs[i] = (dest, dest.into());
-    //     }
-    // }
-
-    // for (dest, src) in movs {
-    //     gen_mov(state, &dest, &src, i)?;
-    // }
-
-    // let pos = state.constant(&call_info.ptr.to_le_bytes());
-    // state.code.extend([0xff, 0x15]); // ff 15 00 00 00 00       call   *0x0(%rip)
-    // let loc = state.code.len();
-    // state.code.extend(0_i32.to_le_bytes());
-    // state.fixups.push((loc, Fixup::Const(pos, 4)));
-
-    // if bytes_pushed != 0 {
-    //     gen_binary(
-    //         state,
-    //         OP_ADD,
-    //         &regs::RSP,
-    //         &regs::RSP,
-    //         &bytes_pushed.into(),
-    //         i,
-    //     )?;
-    // }
-
-    // for src in call_info.saves.iter().rev() {
-    //     gen_pop(state, src, i)?;
-    // }
-    Ok(())
-}
-
-/// Vector immediate instructions use constants.
-fn gen_vimm(
-    state: &mut State,
-    opcodes: &[(u8, u8); 6],
-    ty: Type,
-    vsize: Vsize,
-    v: &R,
-    imm: i64,
-    i: &Ins,
-) -> Result<(), Error> {
-    // if ty.bits() > vsize.bits() || ty.bits() > 64 {
-    //     return Err(Error::InvalidType(i.clone()));
-    // }
-    // if vsize.bits() > 256 {
-    //     // state.cpu_level.max_vbits()
-    //     // TODO: support avx512
-    //     return Err(Error::InvalidType(i.clone()));
-    // }
-    // let elems = vsize.bits() / ty.bits();
-    // let mut c = vec![0_u8; vsize.bits() / 8];
-    // let esize = ty.bits() / 8;
-    // for e in 0..elems {
-    //     c[e * esize..(e + 1) * esize].copy_from_slice(&imm.to_le_bytes()[0..esize]);
-    // }
-    // let pos = state.constant(&c);
-
-    // // PC relative load
-    // let (p, op) = match ty {
-    //     Type::U8 | Type::S8 => opcodes[0],
-    //     Type::U16 | Type::S16 => opcodes[1],
-    //     Type::U32 | Type::S32 => opcodes[2],
-    //     Type::U64 | Type::S64 => opcodes[3],
-    //     Type::F32 => opcodes[4],
-    //     Type::F64 => opcodes[5],
-    //     _ => return Err(Error::UnsupportedVectorOperation(i.clone())),
-    // };
-    // let (r, x, b, w) = (v.to_x86_high(), 0, 0, 0);
-    // let modrm = 0x00 + 5 + v.to_x86_low() * 0x08;
-    // let l = if vsize == Vsize::V128 { 0 } else { 1 };
-    // gen_vex(state, r, x, b, w, 1, 0, l, p, op, modrm);
-    // let loc = state.code.len();
-    // state.code.extend(0_i32.to_le_bytes());
-    // state.fixups.push((loc, Fixup::Const(pos, 4)));
-    Ok(())
-}
-
-fn gen_vop(
-    state: &mut State,
-    opcodes: &[(u8, u8); 6],
-    ty: &Type,
-    vsize: Vsize,
-    v: &R,
-    v1: &R,
-    v2: &Src,
-    i: &Ins,
-) -> Result<(), Error> {
-    // https://www.felixcloutier.com/x86/paddb:paddw:paddd:paddq
-    // https://www.felixcloutier.com/x86/addps
-    // https://en.wikipedia.org/wiki/X86_SIMD_instruction_listings
-
-    // if vsize.bits() > 256 {
-    //     // state.cpu_level.max_vbits()
-    //     // TODO: support avx512
-    //     return Err(Error::InvalidType(i.clone()));
-    // }
-
-    // if let Some(v2) = v2.as_gpr() {
-    //     let modrm = 0xc0 + v2.to_x86_low() + v.to_x86_low() * 8;
-    //     let (r, x, b, w) = (v.to_x86_high(), 0, v2.to_x86_high(), 0);
-    //     let l = if vsize == Vsize::V128 { 0 } else { 1 };
-    //     let v = v1.to_x86();
-    //     let m = 1; // 0x0f
-    //                // See OP_VADD etc.
-    //     let (p, op) = match ty {
-    //         Type::U8 | Type::S8 => opcodes[0],
-    //         Type::U16 | Type::S16 => opcodes[1],
-    //         Type::U32 | Type::S32 => opcodes[2],
-    //         Type::U64 | Type::S64 => opcodes[3],
-    //         Type::F32 => opcodes[4],
-    //         Type::F64 => opcodes[5],
-    //         _ => return Err(Error::UnsupportedVectorOperation(i.clone())),
-    //     };
-    //     if op == 0x00 {
-    //         return Err(Error::UnsupportedVectorOperation(i.clone()));
-    //     }
-    //     gen_vex(state, r, x, b, w, 1, v, l, p, op, modrm);
-    // } else if let Some(imm) = v2.as_imm64() {
-    //     gen_vimm(state, opcodes, *ty, vsize, v, imm, i)?;
-    // } else {
-    //     return Err(Error::InvalidSrcArgument(i.clone()));
-    // }
-
-    Ok(())
-}
-
-fn gen_addr(
-    state: &mut State,
-    r: u8,
-    base: Option<&R>,
-    index: Option<&R>,
-    scale: Scale,
-    imm: i32,
-    i: &Ins,
-) -> Result<(), Error> {
-    // if index == Some(&regs::RSP) {
-    //     return Err(Error::InvalidAddress(i.clone()));
-    // }
-    // let base_low = base.map(|r| r.to_x86_low()).unwrap_or_default();
-    // let modrm_mod = if imm == 0 && base_low != 5 {
-    //     0
-    // } else if TryInto::<i8>::try_into(imm).is_ok() {
-    //     1
-    // } else {
-    //     2
-    // };
-    // if base_low != 4 && scale == Scale::X1 && index.is_none() {
-    //     state.code.push(modrm_mod * 0x40 + r * 0x08 + base_low);
-    // } else {
-    //     let index = index.map(R::to_x86_low).unwrap_or(4);
-    //     state.code.extend([
-    //         modrm_mod * 0x40 + r * 0x08 + 4,
-    //         scale.to_sib() * 0x40 + index * 0x08 + base_low,
-    //     ]);
-    // }
-    // if modrm_mod == 1 {
-    //     state
-    //         .code
-    //         .extend(&TryInto::<i8>::try_into(imm).unwrap().to_le_bytes());
-    // } else if modrm_mod == 2 {
-    //     state.code.extend(imm.to_le_bytes());
-    // }
-    Ok(())
-}
-
-/// deprecate this.
-fn gen_load_store(
-    state: &mut State,
-    opcode: &[u8],
-    pfx_66: bool,
-    w: u8,
-    r: &R,
-    ra: &R,
-    imm: i32,
-    i: &Ins,
-) -> Result<(), Error> {
-    // let has_pfx = opcode[1] == 0x0f;
-    // let op = if has_pfx { opcode[2] } else { opcode[1] };
-    // if pfx_66 {
-    //     state.code.push(OP_PFX_66);
-    // }
-    // state
-    //     .code
-    //     .push(rex(r.to_x86_high(), 0, ra.to_x86_high(), w));
-    // if has_pfx {
-    //     state.code.push(0x0f);
-    // }
-    // state.code.push(op);
-    // gen_addr(state, r.to_x86_low(), Some(ra), None, Scale::X1, imm, &i)
-    Ok(())
-}
-
-fn gen_vload_store(
-    state: &mut State,
-    vsize: Vsize,
-    op: u8,
-    v: &R,
-    ra: &R,
-    imm: i32,
-    i: &Ins,
-) -> Result<(), Error> {
-    // let (r, x, b, w) = (v.to_x86_high(), 0, ra.to_x86_high(), 0);
-    // let modrm = 0x80 + ra.to_x86_low() + v.to_x86_low() * 0x08;
-    // let l = if vsize == Vsize::V128 { 0 } else { 1 };
-    // gen_vex(state, r, x, b, w, 1, 0, l, 0, op, modrm);
-    // state.code.extend(imm.to_le_bytes());
-    Ok(())
-}
-
 impl R {
-    // VEX bits.
     pub fn to_arm64(&self) -> u32 {
-        self.0 as u32
+        (self.0 & 0x1f ) as u32
     }
-}
-
-fn gen_binary(
-    state: &mut State,
-    op: Optype,
-    dest: &R,
-    src1: &R,
-    src2: &Src,
-    i: &Ins,
-) -> Result<(), Error> {
-    if dest.rc(&state.cpu_info) != RegClass::GPR || src1.rc(&state.cpu_info) != RegClass::GPR {
-        return Err(Error::BadRegClass(i.clone()));
-    }
-    if let Some(src2) = src2.as_gpr(&state.cpu_info) {
-        if src2 == regs::SP {
-            return Err(Error::SpNotAllowed(i.clone()));
-        }
-        gen::reg_shifted(
-            state,
-            op,
-            0,
-            src2.to_arm64(),
-            0,
-            src1.to_arm64(),
-            dest.to_arm64(),
-        )?;
-    } else if let Some(imm) = src2.as_imm64() {
-        match op {
-            OP_ADDS if imm & !0xfff == 0 => {
-                gen::imm_shifted(
-                    state,
-                    0xb1000000,
-                    0,
-                    imm as u32,
-                    src1.to_arm64(),
-                    dest.to_arm64(),
-                )?;
-            }
-            OP_ADDS if imm & !(0xfff << 12) == 0 => {
-                gen::imm_shifted(
-                    state,
-                    0xb1000000,
-                    1,
-                    (imm >> 12) as u32,
-                    src1.to_arm64(),
-                    dest.to_arm64(),
-                )?;
-            }
-            OP_SUBS if imm & !0xfff == 0 => {
-                gen::imm_shifted(
-                    state,
-                    0xf1000000,
-                    0,
-                    imm as u32,
-                    src1.to_arm64(),
-                    dest.to_arm64(),
-                )?;
-            }
-            OP_SUBS if imm & !(0xfff << 12) == 0 => {
-                gen::imm_shifted(
-                    state,
-                    0xf1000000,
-                    1,
-                    (imm >> 12) as u32,
-                    src1.to_arm64(),
-                    dest.to_arm64(),
-                )?;
-            }
-            _ => {
-                if imm == 0 {
-                    gen::reg_shifted(
-                        state,
-                        op,
-                        0,
-                        regs::XZR.to_arm64(),
-                        0,
-                        src1.to_arm64(),
-                        dest.to_arm64(),
-                    )?;
-                } else {
-                    // TODO: use get_bitconst_opcode for and, or etc.
-                    gen::ld_constant(state, regs::TMP.to_arm64(), imm)?;
-                    gen::reg_shifted(
-                        state,
-                        op,
-                        0,
-                        regs::TMP.to_arm64(),
-                        0,
-                        src1.to_arm64(),
-                        dest.to_arm64(),
-                    )?;
-                }
-            }
-        }
-    } else {
-        return Err(Error::InvalidSrcArgument(i.clone()));
-    }
-    Ok(())
-}
-
-fn gen_unary(state: &mut State, op: u32, dest: R, src: &Src, i: &Ins) -> Result<(), Error> {
-    if let Some(src) = src.as_gpr(&state.cpu_info) {
-        if op == OP_CMP {
-            gen::reg_shifted(
-                state,
-                op,
-                0,
-                src.to_arm64(),
-                0,
-                dest.to_arm64(),
-                regs::XZR.to_arm64(),
-            )?;
-        } else {
-            gen::reg_shifted(
-                state,
-                op,
-                0,
-                src.to_arm64(),
-                0,
-                regs::XZR.to_arm64(),
-                dest.to_arm64(),
-            )?;
-        }
-    } else if let Some(imm) = src.as_imm64() {
-        match op {
-            OP_NEG => {
-                gen::ld_constant(state, dest.to_arm64(), imm.wrapping_neg())?;
-            }
-            OP_MVN => {
-                gen::ld_constant(state, dest.to_arm64(), !imm)?;
-            }
-            OP_CMP => {
-                gen::ld_constant(state, regs::TMP.to_arm64(), imm)?;
-                gen_unary(state, op, dest, &regs::TMP.into(), i);
-            }
-            OP_MOV => {
-                gen::ld_constant(state, dest.to_arm64(), imm)?;
-            }
-            _ => unreachable!(),
-        }
-    } else {
-        return Err(Error::InvalidSrcArgument(i.clone()));
-    }
-    Ok(())
-}
-
-// fn gen_mov(state: &mut State, dest: &R, src: &Src, i: &Ins) -> Result<(), Error> {
-//     if dest.rc(&state.cpu_info) != RegClass::GPR {
-//         return Err(Error::BadRegClass(i.clone()));
-//     }
-//     if let Some(r) = src.as_gpr(&state.cpu_info) {
-//         if &r != dest {
-//             gen_unary(state, OP_MOV, dest, src, i);
-//         }
-//     } else if let Some(imm) = src.as_imm64() {
-//         gen::ld_constant(state, dest.to_arm64(), imm);
-//     } else {
-//         return Err(Error::InvalidSrcArgument(i.clone()));
-//     }
-//     Ok(())
-// }
-
-/// The push instruction on x86 is quite efficient and is great
-/// fo constant generation.
-fn gen_push(state: &mut State, src: &Src, i: &Ins) -> Result<(), Error> {
-    match src {
-        Src::SR(r) => {
-            let r = R(*r);
-            if r == state.cpu_info.sp() {
-                return Err(Error::InvalidSrcArgument(i.clone()));
-            }
-            match r.rc(&state.cpu_info) {
-                RegClass::GPR => {
-                    todo!();
-                }
-                RegClass::VREG => {
-                    todo!();
-                }
-                _ => return Err(Error::InvalidSrcArgument(i.clone())),
-            }
-        }
-        Src::Imm(imm) => {
-            let imm = *imm;
-            gen::ld_constant(state, regs::TMP.to_arm64(), imm);
-            todo!()
-        }
-        Src::Bytes(items) => {
-            todo!()
-        }
-    }
-    Ok(())
-}
-
-fn gen_pop(state: &mut State, dest: &Src, i: &Ins) -> Result<(), Error> {
-    // if let Some(dest) = dest.as_gpr() {
-    //     if dest.rc(&state.cpu_info) != RegClass::GPR {
-    //         return Err(Error::BadRegClass(i.clone()));
-    //     }
-    //     let op = OP_POP + dest.to_x86_low();
-    //     if dest.to_x86_high() == 0 {
-    //         state.code.extend([op]);
-    //     } else {
-    //         let rex = 0x40 + dest.to_x86_high();
-    //         state.code.extend([rex, op]);
-    //     }
-    // } else {
-    //     return Err(Error::InvalidArgs);
-    // }
-    Ok(())
 }
 
 pub mod gen {
-    use crate::{Cond, Error, Fixup, PcRel4, State, R};
+    use crate::{aarch64::OP_LDR_LITERAL_U64, Cond, Error, Fixup, LabelOrConst, PcRel, State, R};
 
     use super::{OP_ADR, OP_BCC};
 
@@ -1042,18 +897,18 @@ pub mod gen {
         rd: u32,
     ) -> Result<(), Error> {
         let opcode = op | shift << 22 | imm << 10 | rn << 5 | rd;
-        state.code.extend(opcode.to_le_bytes());
+        state.push4(opcode);
         Ok(())
     }
 
     // Branches + System Instructions	op0	1	0	1	op1		op2
     pub(crate) fn branch_indirect(state: &mut State, op: u32, reg: u32) {
-        state.code.extend((op | reg << 5).to_le_bytes());
+        state.push4((op | reg << 5));
     }
 
     pub(crate) fn branch_cond(state: &mut State, cond: u32, label: u32) {
-        let fixup = Fixup::PcRel4(PcRel4 {
-            label,
+        let fixup = Fixup::PcRel(PcRel {
+            target: LabelOrConst::Label(label),
             offset: 0,
             bits: 19,
             rshift: 2,
@@ -1061,12 +916,12 @@ pub mod gen {
             delta: 0,
         });
         state.fixups.push((state.code.len(), fixup));
-        state.code.extend((OP_BCC | cond).to_le_bytes());
+        state.push4((OP_BCC | cond));
     }
 
     pub fn branch(state: &mut State, op: u32, label: u32) {
-        let fixup = Fixup::PcRel4(PcRel4 {
-            label,
+        let fixup = Fixup::PcRel(PcRel {
+            target: LabelOrConst::Label(label),
             offset: 0,
             bits: 26,
             rshift: 2,
@@ -1074,16 +929,27 @@ pub mod gen {
             delta: 0,
         });
         state.fixups.push((state.code.len(), fixup));
-        state.code.extend(op.to_le_bytes());
+        state.push4(op);
     }
 
-    // Load and Store Instructions	op0	1	op1	0	op2		op3		op4
-    pub(crate) fn ld_constant(state: &mut State, tmp: u32, imm: i64) -> Result<(), Error> {
+    /// Generate a constant in a register.
+    pub(crate) fn ld_constant(state: &mut State, dest: u32, imm: i64) -> Result<(), Error> {
+        // TODO add  more options here.
         let c = imm.to_le_bytes();
         let pos = state.constant(&c);
         let loc = state.code.len();
-        state.code.extend((0x58000000 | tmp).to_le_bytes());
-        state.fixups.push((loc, crate::Fixup::Const(pos, 0)));
+
+        state.push4((OP_LDR_LITERAL_U64 | dest));
+
+        let fixup = Fixup::PcRel(PcRel {
+            target: LabelOrConst::Const(pos),
+            offset: 0,
+            bits: 19,
+            rshift: 2,
+            lshift: 5,
+            delta: 0,
+        });
+        state.fixups.push((state.code.len(), fixup));
         Ok(())
     }
 
@@ -1099,7 +965,7 @@ pub mod gen {
         rd: u32,
     ) -> Result<(), Error> {
         let opcode = op | shift << 22 | rm << 16 | imm6 << 10 | rn << 5 | rd;
-        state.code.extend(opcode.to_le_bytes());
+        state.push4(opcode);
         Ok(())
     }
 
@@ -1109,11 +975,17 @@ pub mod gen {
     }
 
     pub fn adr(state: &mut State, dest: u32, label: u32) {
-        state
-            .fixups
-            .push((state.code.len(), Fixup::Adr(super::regs::X0, label)));
+        todo!();
+        // state
+        //     .fixups
+        //     .push((state.code.len(), Fixup::Adr(super::regs::X0, label)));
 
-        state.code.extend((OP_ADR | dest).to_le_bytes());
+        // state.push4((OP_ADR | dest));
+    }
+
+    pub fn reg3(state: &mut State, op: u32, dest: u32, src1: u32, src2: u32) {
+        let (rd, rn, rm) = (dest, src1, src2);
+        state.push4(op | (rm << 16) | (rn << 5) | rd);
     }
 }
 

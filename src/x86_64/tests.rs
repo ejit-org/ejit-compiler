@@ -8,56 +8,59 @@ fn test_add() {
     use Ins::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
     let compiler = x86_64::X86_64Compiler::new(cpu_info);
-    let prog = Executable::from_ir(compiler, &[
-        Add(RAX, RAX, RAX.into()),
-        Add(RAX, RAX, RCX.into()),
-        Add(RAX, RAX, RDX.into()),
-        Add(RAX, RAX, RBX.into()),
-        Add(RAX, RAX, RSP.into()),
-        Add(RAX, RAX, RBP.into()),
-        Add(RAX, RAX, RSI.into()),
-        Add(RAX, RAX, RDI.into()),
-        Add(RAX, RAX, R8.into()),
-        Add(RAX, RAX, R9.into()),
-        Add(RAX, RAX, R10.into()),
-        Add(RAX, RAX, R11.into()),
-        Add(RAX, RAX, R12.into()),
-        Add(RAX, RAX, R13.into()),
-        Add(RAX, RAX, R14.into()),
-        Add(RAX, RAX, R15.into()),
-        Add(RAX, RAX, RAX.into()),
-        Add(RAX, RCX, RAX.into()),
-        Add(RAX, RDX, RAX.into()),
-        Add(RAX, RBX, RAX.into()),
-        Add(RAX, RSP, RAX.into()),
-        Add(RAX, RBP, RAX.into()),
-        Add(RAX, RSI, RAX.into()),
-        Add(RAX, RDI, RAX.into()),
-        Add(RAX, R8, RAX.into()),
-        Add(RAX, R9, RAX.into()),
-        Add(RAX, R10, RAX.into()),
-        Add(RAX, R11, RAX.into()),
-        Add(RAX, R12, RAX.into()),
-        Add(RAX, R13, RAX.into()),
-        Add(RAX, R14, RAX.into()),
-        Add(RAX, R15, RAX.into()),
-        Add(RAX, RAX, RAX.into()),
-        Add(RCX, RAX, RAX.into()),
-        Add(RDX, RAX, RAX.into()),
-        Add(RBX, RAX, RAX.into()),
-        Add(RSP, RAX, RAX.into()),
-        Add(RBP, RAX, RAX.into()),
-        Add(RSI, RAX, RAX.into()),
-        Add(RDI, RAX, RAX.into()),
-        Add(R8, RAX, RAX.into()),
-        Add(R9, RAX, RAX.into()),
-        Add(R10, RAX, RAX.into()),
-        Add(R11, RAX, RAX.into()),
-        Add(R12, RAX, RAX.into()),
-        Add(R13, RAX, RAX.into()),
-        Add(R14, RAX, RAX.into()),
-        Add(R15, RAX, RAX.into()),
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Add(RAX, RAX, RAX.into()),
+            Add(RAX, RAX, RCX.into()),
+            Add(RAX, RAX, RDX.into()),
+            Add(RAX, RAX, RBX.into()),
+            Add(RAX, RAX, RSP.into()),
+            Add(RAX, RAX, RBP.into()),
+            Add(RAX, RAX, RSI.into()),
+            Add(RAX, RAX, RDI.into()),
+            Add(RAX, RAX, R8.into()),
+            Add(RAX, RAX, R9.into()),
+            Add(RAX, RAX, R10.into()),
+            Add(RAX, RAX, R11.into()),
+            Add(RAX, RAX, R12.into()),
+            Add(RAX, RAX, R13.into()),
+            Add(RAX, RAX, R14.into()),
+            Add(RAX, RAX, R15.into()),
+            Add(RAX, RAX, RAX.into()),
+            Add(RAX, RCX, RAX.into()),
+            Add(RAX, RDX, RAX.into()),
+            Add(RAX, RBX, RAX.into()),
+            Add(RAX, RSP, RAX.into()),
+            Add(RAX, RBP, RAX.into()),
+            Add(RAX, RSI, RAX.into()),
+            Add(RAX, RDI, RAX.into()),
+            Add(RAX, R8, RAX.into()),
+            Add(RAX, R9, RAX.into()),
+            Add(RAX, R10, RAX.into()),
+            Add(RAX, R11, RAX.into()),
+            Add(RAX, R12, RAX.into()),
+            Add(RAX, R13, RAX.into()),
+            Add(RAX, R14, RAX.into()),
+            Add(RAX, R15, RAX.into()),
+            Add(RAX, RAX, RAX.into()),
+            Add(RCX, RAX, RAX.into()),
+            Add(RDX, RAX, RAX.into()),
+            Add(RBX, RAX, RAX.into()),
+            Add(RSP, RAX, RAX.into()),
+            Add(RBP, RAX, RAX.into()),
+            Add(RSI, RAX, RAX.into()),
+            Add(RDI, RAX, RAX.into()),
+            Add(R8, RAX, RAX.into()),
+            Add(R9, RAX, RAX.into()),
+            Add(R10, RAX, RAX.into()),
+            Add(R11, RAX, RAX.into()),
+            Add(R12, RAX, RAX.into()),
+            Add(R13, RAX, RAX.into()),
+            Add(R14, RAX, RAX.into()),
+            Add(R15, RAX, RAX.into()),
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -72,58 +75,61 @@ fn test_binary_regs() {
     use regs::*;
     use Ins::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        Sub(RAX, RAX, RAX.into()),
-        Sub(RAX, RAX, RCX.into()),
-        Sub(RAX, RAX, RDX.into()),
-        Sub(RAX, RAX, RBX.into()),
-        Sub(RAX, RAX, RSP.into()),
-        Sub(RAX, RAX, RBP.into()),
-        Sub(RAX, RAX, RSI.into()),
-        Sub(RAX, RAX, RDI.into()),
-        Sub(RAX, RAX, R8.into()),
-        Sub(RAX, RAX, R9.into()),
-        Sub(RAX, RAX, R10.into()),
-        Sub(RAX, RAX, R11.into()),
-        Sub(RAX, RAX, R12.into()),
-        Sub(RAX, RAX, R13.into()),
-        Sub(RAX, RAX, R14.into()),
-        Sub(RAX, RAX, R15.into()),
-        Sub(RAX, RAX, RAX.into()),
-        Sub(RAX, RCX, RAX.into()),
-        Sub(RAX, RDX, RAX.into()),
-        Sub(RAX, RBX, RAX.into()),
-        Sub(RAX, RSP, RAX.into()),
-        Sub(RAX, RBP, RAX.into()),
-        Sub(RAX, RSI, RAX.into()),
-        Sub(RAX, RDI, RAX.into()),
-        Sub(RAX, R8, RAX.into()),
-        Sub(RAX, R9, RAX.into()),
-        Sub(RAX, R10, RAX.into()),
-        Sub(RAX, R11, RAX.into()),
-        Sub(RAX, R12, RAX.into()),
-        Sub(RAX, R13, RAX.into()),
-        Sub(RAX, R14, RAX.into()),
-        Sub(RAX, R15, RAX.into()),
-        Sub(RAX, RAX, RAX.into()),
-        Sub(RCX, RAX, RAX.into()),
-        Sub(RDX, RAX, RAX.into()),
-        Sub(RBX, RAX, RAX.into()),
-        Sub(RSP, RAX, RAX.into()),
-        Sub(RBP, RAX, RAX.into()),
-        Sub(RSI, RAX, RAX.into()),
-        Sub(RDI, RAX, RAX.into()),
-        Sub(R8, RAX, RAX.into()),
-        Sub(R9, RAX, RAX.into()),
-        Sub(R10, RAX, RAX.into()),
-        Sub(R11, RAX, RAX.into()),
-        Sub(R12, RAX, RAX.into()),
-        Sub(R13, RAX, RAX.into()),
-        Sub(R14, RAX, RAX.into()),
-        Sub(R15, RAX, RAX.into()),
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Sub(RAX, RAX, RAX.into()),
+            Sub(RAX, RAX, RCX.into()),
+            Sub(RAX, RAX, RDX.into()),
+            Sub(RAX, RAX, RBX.into()),
+            Sub(RAX, RAX, RSP.into()),
+            Sub(RAX, RAX, RBP.into()),
+            Sub(RAX, RAX, RSI.into()),
+            Sub(RAX, RAX, RDI.into()),
+            Sub(RAX, RAX, R8.into()),
+            Sub(RAX, RAX, R9.into()),
+            Sub(RAX, RAX, R10.into()),
+            Sub(RAX, RAX, R11.into()),
+            Sub(RAX, RAX, R12.into()),
+            Sub(RAX, RAX, R13.into()),
+            Sub(RAX, RAX, R14.into()),
+            Sub(RAX, RAX, R15.into()),
+            Sub(RAX, RAX, RAX.into()),
+            Sub(RAX, RCX, RAX.into()),
+            Sub(RAX, RDX, RAX.into()),
+            Sub(RAX, RBX, RAX.into()),
+            Sub(RAX, RSP, RAX.into()),
+            Sub(RAX, RBP, RAX.into()),
+            Sub(RAX, RSI, RAX.into()),
+            Sub(RAX, RDI, RAX.into()),
+            Sub(RAX, R8, RAX.into()),
+            Sub(RAX, R9, RAX.into()),
+            Sub(RAX, R10, RAX.into()),
+            Sub(RAX, R11, RAX.into()),
+            Sub(RAX, R12, RAX.into()),
+            Sub(RAX, R13, RAX.into()),
+            Sub(RAX, R14, RAX.into()),
+            Sub(RAX, R15, RAX.into()),
+            Sub(RAX, RAX, RAX.into()),
+            Sub(RCX, RAX, RAX.into()),
+            Sub(RDX, RAX, RAX.into()),
+            Sub(RBX, RAX, RAX.into()),
+            Sub(RSP, RAX, RAX.into()),
+            Sub(RBP, RAX, RAX.into()),
+            Sub(RSI, RAX, RAX.into()),
+            Sub(RDI, RAX, RAX.into()),
+            Sub(R8, RAX, RAX.into()),
+            Sub(R9, RAX, RAX.into()),
+            Sub(R10, RAX, RAX.into()),
+            Sub(R11, RAX, RAX.into()),
+            Sub(R12, RAX, RAX.into()),
+            Sub(R13, RAX, RAX.into()),
+            Sub(R14, RAX, RAX.into()),
+            Sub(R15, RAX, RAX.into()),
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -139,18 +145,21 @@ fn test_shift_ecx() {
     use regs::*;
     use Ins::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        Shl(RAX, RAX, RAX.into()),
-        Shl(RAX, RAX, RCX.into()),
-        Shl(RAX, RCX, RAX.into()),
-        Shl(RAX, RCX, RCX.into()),
-        Shl(RCX, RAX, RAX.into()),
-        Shl(RCX, RAX, RCX.into()),
-        Shl(RCX, RCX, RAX.into()),
-        Shl(RCX, RCX, RCX.into()),
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Shl(RAX, RAX, RAX.into()),
+            Shl(RAX, RAX, RCX.into()),
+            Shl(RAX, RCX, RAX.into()),
+            Shl(RAX, RCX, RCX.into()),
+            Shl(RCX, RAX, RAX.into()),
+            Shl(RCX, RAX, RCX.into()),
+            Shl(RCX, RCX, RAX.into()),
+            Shl(RCX, RCX, RCX.into()),
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -166,26 +175,29 @@ fn test_div_eax() {
     use regs::*;
     use Ins::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        Udiv(RBX, RBX, RBX.into()),
-        Udiv(RBX, RBX, RAX.into()),
-        Udiv(RBX, RAX, RBX.into()),
-        Udiv(RBX, RAX, RAX.into()),
-        Udiv(RAX, RBX, RBX.into()),
-        Udiv(RAX, RBX, RAX.into()),
-        Udiv(RAX, RAX, RBX.into()),
-        Udiv(RDX, RDX, RDX.into()),
-        Udiv(RBX, RBX, RBX.into()),
-        Udiv(RBX, RBX, RDX.into()),
-        Udiv(RBX, RDX, RBX.into()),
-        Udiv(RBX, RDX, RDX.into()),
-        Udiv(RDX, RBX, RBX.into()),
-        Udiv(RDX, RBX, RDX.into()),
-        Udiv(RDX, RDX, RBX.into()),
-        Udiv(RDX, RDX, RDX.into()),
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Udiv(RBX, RBX, RBX.into()),
+            Udiv(RBX, RBX, RAX.into()),
+            Udiv(RBX, RAX, RBX.into()),
+            Udiv(RBX, RAX, RAX.into()),
+            Udiv(RAX, RBX, RBX.into()),
+            Udiv(RAX, RBX, RAX.into()),
+            Udiv(RAX, RAX, RBX.into()),
+            Udiv(RDX, RDX, RDX.into()),
+            Udiv(RBX, RBX, RBX.into()),
+            Udiv(RBX, RBX, RDX.into()),
+            Udiv(RBX, RDX, RBX.into()),
+            Udiv(RBX, RDX, RDX.into()),
+            Udiv(RDX, RBX, RBX.into()),
+            Udiv(RDX, RBX, RDX.into()),
+            Udiv(RDX, RDX, RBX.into()),
+            Udiv(RDX, RDX, RDX.into()),
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -200,17 +212,20 @@ fn test_shift_regs() {
     use regs::*;
     use Ins::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        Shl(RAX, RAX, RAX.into()),
-        Shl(RAX, RAX, RDI.into()),
-        Shl(RAX, RAX, R15.into()),
-        Shl(RAX, RDI, RAX.into()),
-        Shl(RAX, R15, RAX.into()),
-        Shl(RDI, RAX, RAX.into()),
-        Shl(R15, RAX, RAX.into()),
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Shl(RAX, RAX, RAX.into()),
+            Shl(RAX, RAX, RDI.into()),
+            Shl(RAX, RAX, R15.into()),
+            Shl(RAX, RDI, RAX.into()),
+            Shl(RAX, R15, RAX.into()),
+            Shl(RDI, RAX, RAX.into()),
+            Shl(R15, RAX, RAX.into()),
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -225,21 +240,24 @@ fn test_binary() {
     use regs::*;
     use Ins::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        Add(RAX, RAX, RAX.into()),
-        Sub(RAX, RAX, RAX.into()),
-        And(RAX, RAX, RAX.into()),
-        Or(RAX, RAX, RAX.into()),
-        Xor(RAX, RAX, RAX.into()),
-        Shl(RAX, RAX, RAX.into()),
-        Shr(RAX, RAX, RAX.into()),
-        Sar(RAX, RAX, RAX.into()),
-        Mul(RAX, RAX, RAX.into()),
-        Udiv(RAX, RAX, RAX.into()),
-        Sdiv(RAX, RAX, RAX.into()),
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Add(RAX, RAX, RAX.into()),
+            Sub(RAX, RAX, RAX.into()),
+            And(RAX, RAX, RAX.into()),
+            Or(RAX, RAX, RAX.into()),
+            Xor(RAX, RAX, RAX.into()),
+            Shl(RAX, RAX, RAX.into()),
+            Shr(RAX, RAX, RAX.into()),
+            Sar(RAX, RAX, RAX.into()),
+            Mul(RAX, RAX, RAX.into()),
+            Udiv(RAX, RAX, RAX.into()),
+            Sdiv(RAX, RAX, RAX.into()),
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -254,22 +272,25 @@ fn test_vld() {
     use regs::*;
     use Ins::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        Vld(Type::S8, Vsize::V128, R(0), RAX, 0),
-        Vld(Type::S8, Vsize::V128, R(0), RCX, 0),
-        Vld(Type::S8, Vsize::V128, R(1), RAX, 0),
-        Vld(Type::S8, Vsize::V128, R(0), R8, 0),
-        Vld(Type::S8, Vsize::V128, R(8), RAX, 0),
-        Vld(Type::S8, Vsize::V128, R(9), R10, 0),
-        Vld(Type::S8, Vsize::V256, R(0), RAX, 0),
-        Vld(Type::S8, Vsize::V256, R(0), RCX, 0),
-        Vld(Type::S8, Vsize::V256, R(1), RAX, 0),
-        Vld(Type::S8, Vsize::V256, R(0), R8, 0),
-        Vld(Type::S8, Vsize::V256, R(8), RAX, 0),
-        Vld(Type::S8, Vsize::V256, R(9), R10, 0),
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Vld(Type::S8, Vsize::V128, R(0), RAX, 0),
+            Vld(Type::S8, Vsize::V128, R(0), RCX, 0),
+            Vld(Type::S8, Vsize::V128, R(1), RAX, 0),
+            Vld(Type::S8, Vsize::V128, R(0), R8, 0),
+            Vld(Type::S8, Vsize::V128, R(8), RAX, 0),
+            Vld(Type::S8, Vsize::V128, R(9), R10, 0),
+            Vld(Type::S8, Vsize::V256, R(0), RAX, 0),
+            Vld(Type::S8, Vsize::V256, R(0), RCX, 0),
+            Vld(Type::S8, Vsize::V256, R(1), RAX, 0),
+            Vld(Type::S8, Vsize::V256, R(0), R8, 0),
+            Vld(Type::S8, Vsize::V256, R(8), RAX, 0),
+            Vld(Type::S8, Vsize::V256, R(9), R10, 0),
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -282,22 +303,25 @@ fn test_vst() {
     use regs::*;
     use Ins::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        Vst(Type::S8, Vsize::V128, R(0), RAX, 0),
-        Vst(Type::S8, Vsize::V128, R(0), RCX, 0),
-        Vst(Type::S8, Vsize::V128, R(1), RAX, 0),
-        Vst(Type::S8, Vsize::V128, R(0), R8, 0),
-        Vst(Type::S8, Vsize::V128, R(8), RAX, 0),
-        Vst(Type::S8, Vsize::V128, R(9), R10, 0),
-        Vst(Type::S8, Vsize::V256, R(0), RAX, 0),
-        Vst(Type::S8, Vsize::V256, R(0), RCX, 0),
-        Vst(Type::S8, Vsize::V256, R(1), RAX, 0),
-        Vst(Type::S8, Vsize::V256, R(0), R8, 0),
-        Vst(Type::S8, Vsize::V256, R(8), RAX, 0),
-        Vst(Type::S8, Vsize::V256, R(9), R10, 0),
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Vst(Type::S8, Vsize::V128, R(0), RAX, 0),
+            Vst(Type::S8, Vsize::V128, R(0), RCX, 0),
+            Vst(Type::S8, Vsize::V128, R(1), RAX, 0),
+            Vst(Type::S8, Vsize::V128, R(0), R8, 0),
+            Vst(Type::S8, Vsize::V128, R(8), RAX, 0),
+            Vst(Type::S8, Vsize::V128, R(9), R10, 0),
+            Vst(Type::S8, Vsize::V256, R(0), RAX, 0),
+            Vst(Type::S8, Vsize::V256, R(0), RCX, 0),
+            Vst(Type::S8, Vsize::V256, R(1), RAX, 0),
+            Vst(Type::S8, Vsize::V256, R(0), R8, 0),
+            Vst(Type::S8, Vsize::V256, R(8), RAX, 0),
+            Vst(Type::S8, Vsize::V256, R(9), R10, 0),
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -311,69 +335,78 @@ fn test_modrm() {
     use Ins::*;
     use Type::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        St(U8, RAX, RAX, 0),
-        St(U8, RAX, RSP, 0),
-        St(U8, RAX, RBP, 0),
-        St(U8, RAX, R12, 0),
-        St(U8, RAX, R13, 0),
-        St(U8, RAX, R15, 0),
-        St(U8, RAX, RAX, 0),
-        St(U8, RSP, RSP, 0),
-        St(U8, RBP, RBP, 0),
-        St(U8, R12, R12, 0),
-        St(U8, R13, R13, 0),
-        St(U8, R15, R15, 0),
-        Ret,
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            St(U8, RAX, RAX, 0),
+            St(U8, RAX, RSP, 0),
+            St(U8, RAX, RBP, 0),
+            St(U8, RAX, R12, 0),
+            St(U8, RAX, R13, 0),
+            St(U8, RAX, R15, 0),
+            St(U8, RAX, RAX, 0),
+            St(U8, RSP, RSP, 0),
+            St(U8, RBP, RBP, 0),
+            St(U8, R12, R12, 0),
+            St(U8, R13, R13, 0),
+            St(U8, R15, R15, 0),
+            Ret,
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=40+88+00+40+88+04+24+40+88+45+00+41+88+04+24+41+88+45+00+41+88+07+40+88+00+40+88+24+24+40+88+6d+00+45+88+24+24+45+88+6d+00+45+88+3f+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        St(U8, RAX, RAX, 1),
-        St(U8, RAX, RSP, 1),
-        St(U8, RAX, RBP, 1),
-        St(U8, RAX, R12, 1),
-        St(U8, RAX, R13, 1),
-        St(U8, RAX, R15, 1),
-        St(U8, RAX, RAX, 1),
-        St(U8, RSP, RSP, 1),
-        St(U8, RBP, RBP, 1),
-        St(U8, R12, R12, 1),
-        St(U8, R13, R13, 1),
-        St(U8, R15, R15, 1),
-        Ret,
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            St(U8, RAX, RAX, 1),
+            St(U8, RAX, RSP, 1),
+            St(U8, RAX, RBP, 1),
+            St(U8, RAX, R12, 1),
+            St(U8, RAX, R13, 1),
+            St(U8, RAX, R15, 1),
+            St(U8, RAX, RAX, 1),
+            St(U8, RSP, RSP, 1),
+            St(U8, RBP, RBP, 1),
+            St(U8, R12, R12, 1),
+            St(U8, R13, R13, 1),
+            St(U8, R15, R15, 1),
+            Ret,
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=40+88+40+01+40+88+44+24+01+40+88+45+01+41+88+44+24+01+41+88+45+01+41+88+47+01+40+88+40+01+40+88+64+24+01+40+88+6d+01+45+88+64+24+01+45+88+6d+01+45+88+7f+01+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        St(U8, RAX, RAX, 128),
-        St(U8, RAX, RSP, 128),
-        St(U8, RAX, RBP, 128),
-        St(U8, RAX, R12, 128),
-        St(U8, RAX, R13, 128),
-        St(U8, RAX, R15, 128),
-        St(U8, RAX, RAX, 128),
-        St(U8, RSP, RSP, 128),
-        St(U8, RBP, RBP, 128),
-        St(U8, R12, R12, 128),
-        St(U8, R13, R13, 128),
-        St(U8, R15, R15, 128),
-        Ret,
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            St(U8, RAX, RAX, 128),
+            St(U8, RAX, RSP, 128),
+            St(U8, RAX, RBP, 128),
+            St(U8, RAX, R12, 128),
+            St(U8, RAX, R13, 128),
+            St(U8, RAX, R15, 128),
+            St(U8, RAX, RAX, 128),
+            St(U8, RSP, RSP, 128),
+            St(U8, RBP, RBP, 128),
+            St(U8, R12, R12, 128),
+            St(U8, R13, R13, 128),
+            St(U8, R15, R15, 128),
+            Ret,
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -387,23 +420,26 @@ fn test_stb() {
     use Ins::*;
     use Type::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        St(U8, RAX, RAX, 0),
-        St(U8, RAX, RSP, 0),
-        St(U8, RAX, RBP, 0),
-        St(U8, RAX, R12, 0),
-        St(U8, RAX, R13, 0),
-        St(U8, RAX, R15, 0),
-        St(U8, RAX, RAX, 0),
-        St(U8, RSP, RSP, 0),
-        St(U8, RBP, RBP, 0),
-        St(U8, R12, R12, 0),
-        St(U8, R13, R13, 0),
-        St(U8, R15, R15, 0),
-        Ret,
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            St(U8, RAX, RAX, 0),
+            St(U8, RAX, RSP, 0),
+            St(U8, RAX, RBP, 0),
+            St(U8, RAX, R12, 0),
+            St(U8, RAX, R13, 0),
+            St(U8, RAX, R15, 0),
+            St(U8, RAX, RAX, 0),
+            St(U8, RSP, RSP, 0),
+            St(U8, RBP, RBP, 0),
+            St(U8, R12, R12, 0),
+            St(U8, R13, R13, 0),
+            St(U8, R15, R15, 0),
+            Ret,
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -417,23 +453,26 @@ fn test_stw() {
     use Ins::*;
     use Type::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        St(U16, RAX, RAX, 0),
-        St(U16, RAX, RSP, 0),
-        St(U16, RAX, RBP, 0),
-        St(U16, RAX, R12, 0),
-        St(U16, RAX, R13, 0),
-        St(U16, RAX, R15, 0),
-        St(U16, RAX, RAX, 0),
-        St(U16, RSP, RSP, 0),
-        St(U16, RBP, RBP, 0),
-        St(U16, R12, R12, 0),
-        St(U16, R13, R13, 0),
-        St(U16, R15, R15, 0),
-        Ret,
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            St(U16, RAX, RAX, 0),
+            St(U16, RAX, RSP, 0),
+            St(U16, RAX, RBP, 0),
+            St(U16, RAX, R12, 0),
+            St(U16, RAX, R13, 0),
+            St(U16, RAX, R15, 0),
+            St(U16, RAX, RAX, 0),
+            St(U16, RSP, RSP, 0),
+            St(U16, RBP, RBP, 0),
+            St(U16, R12, R12, 0),
+            St(U16, R13, R13, 0),
+            St(U16, R15, R15, 0),
+            Ret,
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -447,23 +486,26 @@ fn test_std() {
     use Ins::*;
     use Type::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        St(U32, RAX, RAX, 0),
-        St(U32, RAX, RSP, 0),
-        St(U32, RAX, RBP, 0),
-        St(U32, RAX, R12, 0),
-        St(U32, RAX, R13, 0),
-        St(U32, RAX, R15, 0),
-        St(U32, RAX, RAX, 0),
-        St(U32, RSP, RSP, 0),
-        St(U32, RBP, RBP, 0),
-        St(U32, R12, R12, 0),
-        St(U32, R13, R13, 0),
-        St(U32, R15, R15, 0),
-        Ret,
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            St(U32, RAX, RAX, 0),
+            St(U32, RAX, RSP, 0),
+            St(U32, RAX, RBP, 0),
+            St(U32, RAX, R12, 0),
+            St(U32, RAX, R13, 0),
+            St(U32, RAX, R15, 0),
+            St(U32, RAX, RAX, 0),
+            St(U32, RSP, RSP, 0),
+            St(U32, RBP, RBP, 0),
+            St(U32, R12, R12, 0),
+            St(U32, R13, R13, 0),
+            St(U32, R15, R15, 0),
+            Ret,
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -477,23 +519,26 @@ fn test_stq() {
     use Ins::*;
     use Type::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        St(U64, RAX, RAX, 0),
-        St(U64, RAX, RSP, 0),
-        St(U64, RAX, RBP, 0),
-        St(U64, RAX, R12, 0),
-        St(U64, RAX, R13, 0),
-        St(U64, RAX, R15, 0),
-        St(U64, RAX, RAX, 0),
-        St(U64, RSP, RSP, 0),
-        St(U64, RBP, RBP, 0),
-        St(U64, R12, R12, 0),
-        St(U64, R13, R13, 0),
-        St(U64, R15, R15, 0),
-        Ret,
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            St(U64, RAX, RAX, 0),
+            St(U64, RAX, RSP, 0),
+            St(U64, RAX, RBP, 0),
+            St(U64, RAX, R12, 0),
+            St(U64, RAX, R13, 0),
+            St(U64, RAX, R15, 0),
+            St(U64, RAX, RAX, 0),
+            St(U64, RSP, RSP, 0),
+            St(U64, RBP, RBP, 0),
+            St(U64, R12, R12, 0),
+            St(U64, R13, R13, 0),
+            St(U64, R15, R15, 0),
+            Ret,
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -507,25 +552,27 @@ fn test_ld() {
     use Ins::*;
     use Type::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        Ld(U8, RCX, RSI, 0),
-        Ld(U16, RCX, RSI, 0),
-        Ld(U32, RCX, RSI, 0),
-        Ld(U64, RCX, RAX, 0),
-        Ld(S8, RCX, RSI, 0),
-        Ld(S16, RCX, RSI, 0),
-        Ld(S32, RCX, RSI, 0),
-        Ld(S64, RCX, RAX, 0),
-        Ret,
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Ld(U8, RCX, RSI, 0),
+            Ld(U16, RCX, RSI, 0),
+            Ld(U32, RCX, RSI, 0),
+            Ld(U64, RCX, RAX, 0),
+            Ld(S8, RCX, RSI, 0),
+            Ld(S16, RCX, RSI, 0),
+            Ld(S32, RCX, RSI, 0),
+            Ld(S64, RCX, RAX, 0),
+            Ret,
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
         "https://shell-storm.org/online/Online-Assembler-and-Disassembler/?opcodes=48+0f+b6+0e+66+48+0f+b7+0e+40+8b+0e+48+8b+08+48+0f+be+0e+66+48+0f+bf+0e+48+63+0e+48+8b+08+c3&arch=x86-64&endianness=little&baddr=0x00000000&dis_with_addr=True&dis_with_raw=True&dis_with_ins=True#disassembly"
     );
-
 }
 
 #[test]
@@ -535,24 +582,27 @@ fn test_vpadd() {
     use Type::*;
     use Vsize::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        Vadd(U8, V128, R(0), R(0), R(0).into()),
-        Vadd(U16, V128, R(0), R(0), R(0).into()),
-        Vadd(U32, V128, R(0), R(0), R(0).into()),
-        Vadd(U64, V128, R(0), R(0), R(0).into()),
-        Vadd(F32, V128, R(0), R(0), R(0).into()),
-        Vadd(F64, V128, R(0), R(0), R(0).into()),
-        Vadd(U8, V128, R(0), R(0), R(0).into()),
-        Vadd(U8, V128, R(15), R(0), R(0).into()),
-        Vadd(U8, V128, R(0), R(15), R(0).into()),
-        Vadd(U8, V128, R(0), R(0), R(15).into()),
-        Vadd(U8, V128, R(1), R(2), R(3).into()),
-        Vadd(U8, V256, R(0), R(0), R(0).into()),
-        Vadd(U8, V256, R(0), R(0), R(15).into()),
-        Ret,
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Vadd(U8, V128, R(0), R(0), R(0).into()),
+            Vadd(U16, V128, R(0), R(0), R(0).into()),
+            Vadd(U32, V128, R(0), R(0), R(0).into()),
+            Vadd(U64, V128, R(0), R(0), R(0).into()),
+            Vadd(F32, V128, R(0), R(0), R(0).into()),
+            Vadd(F64, V128, R(0), R(0), R(0).into()),
+            Vadd(U8, V128, R(0), R(0), R(0).into()),
+            Vadd(U8, V128, R(15), R(0), R(0).into()),
+            Vadd(U8, V128, R(0), R(15), R(0).into()),
+            Vadd(U8, V128, R(0), R(0), R(15).into()),
+            Vadd(U8, V128, R(1), R(2), R(3).into()),
+            Vadd(U8, V256, R(0), R(0), R(0).into()),
+            Vadd(U8, V256, R(0), R(0), R(15).into()),
+            Ret,
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -567,17 +617,20 @@ fn test_vpaddi() {
     use Type::*;
     use Vsize::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        Vadd(U8, V128, R(1), R(15), 0x12.into()),
-        Vadd(U16, V128, R(1), R(15), 0x1234.into()),
-        Vadd(U32, V128, R(1), R(15), 0x12345678.into()),
-        Vadd(U64, V128, R(1), R(15), 0x123456789abcdef0_i64.into()),
-        Vadd(F32, V128, R(1), R(15), 1.0_f32.into()),
-        Vadd(F64, V128, R(1), R(15), 1.0_f64.into()),
-        Ret,
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Vadd(U8, V128, R(1), R(15), 0x12.into()),
+            Vadd(U16, V128, R(1), R(15), 0x1234.into()),
+            Vadd(U32, V128, R(1), R(15), 0x12345678.into()),
+            Vadd(U64, V128, R(1), R(15), 0x123456789abcdef0_i64.into()),
+            Vadd(F32, V128, R(1), R(15), 1.0_f32.into()),
+            Vadd(F64, V128, R(1), R(15), 1.0_f64.into()),
+            Ret,
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -592,24 +645,27 @@ fn test_vpsub() {
     use Type::*;
     use Vsize::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        Vsub(U8, V128, R(0), R(0), R(0).into()),
-        Vsub(U16, V128, R(0), R(0), R(0).into()),
-        Vsub(U32, V128, R(0), R(0), R(0).into()),
-        Vsub(U64, V128, R(0), R(0), R(0).into()),
-        Vsub(F32, V128, R(0), R(0), R(0).into()),
-        Vsub(F64, V128, R(0), R(0), R(0).into()),
-        Vsub(U8, V128, R(0), R(0), R(0).into()),
-        Vsub(U8, V128, R(15), R(0), R(0).into()),
-        Vsub(U8, V128, R(0), R(15), R(0).into()),
-        Vsub(U8, V128, R(0), R(0), R(15).into()),
-        Vsub(U8, V128, R(1), R(2), R(3).into()),
-        Vsub(U8, V256, R(0), R(0), R(0).into()),
-        Vsub(U8, V256, R(0), R(0), R(15).into()),
-        Ret,
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Vsub(U8, V128, R(0), R(0), R(0).into()),
+            Vsub(U16, V128, R(0), R(0), R(0).into()),
+            Vsub(U32, V128, R(0), R(0), R(0).into()),
+            Vsub(U64, V128, R(0), R(0), R(0).into()),
+            Vsub(F32, V128, R(0), R(0), R(0).into()),
+            Vsub(F64, V128, R(0), R(0), R(0).into()),
+            Vsub(U8, V128, R(0), R(0), R(0).into()),
+            Vsub(U8, V128, R(15), R(0), R(0).into()),
+            Vsub(U8, V128, R(0), R(15), R(0).into()),
+            Vsub(U8, V128, R(0), R(0), R(15).into()),
+            Vsub(U8, V128, R(1), R(2), R(3).into()),
+            Vsub(U8, V256, R(0), R(0), R(0).into()),
+            Vsub(U8, V256, R(0), R(0), R(15).into()),
+            Ret,
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -624,17 +680,20 @@ fn test_vandorxor() {
     use Type::*;
     use Vsize::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        Vand(U8, V128, R(1), R(2), R(3).into()),
-        Vor(U8, V128, R(1), R(2), R(3).into()),
-        Vxor(U8, V128, R(1), R(2), R(3).into()),
-        Vand(U8, V256, R(1), R(2), R(3).into()),
-        Vor(U8, V256, R(1), R(2), R(3).into()),
-        Vxor(U8, V256, R(1), R(2), R(3).into()),
-        Ret,
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Vand(U8, V128, R(1), R(2), R(3).into()),
+            Vor(U8, V128, R(1), R(2), R(3).into()),
+            Vxor(U8, V128, R(1), R(2), R(3).into()),
+            Vand(U8, V256, R(1), R(2), R(3).into()),
+            Vor(U8, V256, R(1), R(2), R(3).into()),
+            Vxor(U8, V256, R(1), R(2), R(3).into()),
+            Ret,
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -649,17 +708,20 @@ fn test_vshift() {
     use Type::*;
     use Vsize::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        Vshl(U32, V128, R(1), R(2), R(3).into()),
-        Vshr(S32, V128, R(1), R(2), R(3).into()),
-        Vshr(U32, V128, R(1), R(2), R(3).into()),
-        Vshl(U32, V256, R(1), R(2), R(3).into()),
-        Vshr(S32, V256, R(1), R(2), R(3).into()),
-        Vshr(U32, V256, R(1), R(2), R(3).into()),
-        Ret,
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Vshl(U32, V128, R(1), R(2), R(3).into()),
+            Vshr(S32, V128, R(1), R(2), R(3).into()),
+            Vshr(U32, V128, R(1), R(2), R(3).into()),
+            Vshl(U32, V256, R(1), R(2), R(3).into()),
+            Vshr(S32, V256, R(1), R(2), R(3).into()),
+            Vshr(U32, V256, R(1), R(2), R(3).into()),
+            Ret,
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -674,15 +736,18 @@ fn test_vmul() {
     use Type::*;
     use Vsize::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        Vmul(F32, V128, R(1), R(2), R(3).into()),
-        Vmul(F64, V128, R(1), R(2), R(3).into()),
-        Vmul(F32, V256, R(1), R(2), R(3).into()),
-        Vmul(F64, V256, R(1), R(2), R(3).into()),
-        Ret,
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Vmul(F32, V128, R(1), R(2), R(3).into()),
+            Vmul(F64, V128, R(1), R(2), R(3).into()),
+            Vmul(F32, V256, R(1), R(2), R(3).into()),
+            Vmul(F64, V256, R(1), R(2), R(3).into()),
+            Ret,
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -697,17 +762,20 @@ fn test_vmovi() {
     use Type::*;
     use Vsize::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        Vmov(U8, V128, R(15), 0x12.into()),
-        Vmov(U16, V128, R(15), 0x1234.into()),
-        Vmov(U32, V128, R(15), 0x12345678.into()),
-        Vmov(U64, V128, R(15), 0x123456789abcdef0_i64.into()),
-        Vmov(F32, V128, R(15), 1.0_f32.into()),
-        Vmov(F64, V128, R(15), 1.0_f64.into()),
-        Ret,
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Vmov(U8, V128, R(15), 0x12.into()),
+            Vmov(U16, V128, R(15), 0x1234.into()),
+            Vmov(U32, V128, R(15), 0x12345678.into()),
+            Vmov(U64, V128, R(15), 0x123456789abcdef0_i64.into()),
+            Vmov(F32, V128, R(15), 1.0_f32.into()),
+            Vmov(F64, V128, R(15), 1.0_f64.into()),
+            Ret,
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),
@@ -722,20 +790,23 @@ fn test_vmov() {
     use Type::*;
     use Vsize::*;
     let cpu_info = x86_64::cpu_info(CpuLevel::Simd128);
-        let compiler = x86_64::X86_64Compiler::new(cpu_info);
+    let compiler = x86_64::X86_64Compiler::new(cpu_info);
 
-    let prog = Executable::from_ir(compiler, &[
-        Vmov(U8, V128, R(0), R(0).into()),
-        Vmov(U16, V128, R(0), R(0).into()),
-        Vmov(U32, V128, R(0), R(0).into()),
-        Vmov(U64, V128, R(0), R(0).into()),
-        Vmov(U8, V128, R(1), R(2).into()),
-        Vmov(U8, V128, R(2), R(4).into()),
-        Vmov(U8, V128, R(3), R(6).into()),
-        Vmov(U8, V128, R(4), R(8).into()),
-        Vmov(U8, V128, R(5), R(10).into()),
-        Ret,
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Vmov(U8, V128, R(0), R(0).into()),
+            Vmov(U16, V128, R(0), R(0).into()),
+            Vmov(U32, V128, R(0), R(0).into()),
+            Vmov(U64, V128, R(0), R(0).into()),
+            Vmov(U8, V128, R(1), R(2).into()),
+            Vmov(U8, V128, R(2), R(4).into()),
+            Vmov(U8, V128, R(3), R(6).into()),
+            Vmov(U8, V128, R(4), R(8).into()),
+            Vmov(U8, V128, R(5), R(10).into()),
+            Ret,
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_x86_url(),

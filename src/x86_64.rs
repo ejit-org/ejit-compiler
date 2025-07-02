@@ -1,5 +1,6 @@
 use crate::{
-    CallInfo, Compiler, CompilerResult, Cond, CpuInfo, CpuLevel, EntryInfo, Error, Executable, Fixup, Ins, RegClass, RegInfo, Scale, Src, State, Type, Vsize, R
+    CallInfo, Compiler, CompilerResult, Cond, CpuInfo, CpuLevel, EntryInfo, Error, Executable,
+    Fixup, Ins, RegClass, RegInfo, Scale, Src, State, Type, Vsize, R,
 };
 
 pub mod regs {
@@ -22,22 +23,22 @@ pub mod regs {
     pub const R14: R = R(14);
     pub const R15: R = R(15);
 
-    pub const XMM0: R = R(16+0);
-    pub const XMM1: R = R(16+1);
-    pub const XMM2: R = R(16+2);
-    pub const XMM3: R = R(16+3);
-    pub const XMM4: R = R(16+4);
-    pub const XMM5: R = R(16+5);
-    pub const XMM6: R = R(16+6);
-    pub const XMM7: R = R(16+7);
-    pub const XMM8: R = R(16+8);
-    pub const XMM9: R = R(16+9);
-    pub const XMM10: R = R(16+10);
-    pub const XMM11: R = R(16+11);
-    pub const XMM12: R = R(16+12);
-    pub const XMM13: R = R(16+13);
-    pub const XMM14: R = R(16+14);
-    pub const XMM15: R = R(16+15);
+    pub const XMM0: R = R(16 + 0);
+    pub const XMM1: R = R(16 + 1);
+    pub const XMM2: R = R(16 + 2);
+    pub const XMM3: R = R(16 + 3);
+    pub const XMM4: R = R(16 + 4);
+    pub const XMM5: R = R(16 + 5);
+    pub const XMM6: R = R(16 + 6);
+    pub const XMM7: R = R(16 + 7);
+    pub const XMM8: R = R(16 + 8);
+    pub const XMM9: R = R(16 + 9);
+    pub const XMM10: R = R(16 + 10);
+    pub const XMM11: R = R(16 + 11);
+    pub const XMM12: R = R(16 + 12);
+    pub const XMM13: R = R(16 + 13);
+    pub const XMM14: R = R(16 + 14);
+    pub const XMM15: R = R(16 + 15);
 
     pub const YMM0: R = XMM0;
     pub const YMM1: R = XMM1;
@@ -277,44 +278,43 @@ const OP_PFX_66: u8 = 0x66;
 const OP_JMP: u8 = 0xe9;
 const OP_CALL: u8 = 0xe8;
 
-const REG_INFO : &[RegInfo] = &[
+const REG_INFO: &[RegInfo] = &[
     // rax-rdi
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(0), ret: Some(0), name: "rax" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(1), ret: Some(1), name: "rcx" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(2), ret: Some(2), name: "rdx" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(3), ret: Some(3), name: "rbx" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: true, arg: Some(4), ret: Some(4), name: "rsp" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(5), ret: Some(5), name: "rbp" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(6), ret: Some(6), name: "rsi" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: Some(7), ret: Some(7), name: "rdi" },
+    RegInfo::new(RegClass::GPR,false,false,false,Some(0),Some(0),"rax"),
+    RegInfo::new(RegClass::GPR,false,false,false,Some(1),Some(1),"rcx"),
+    RegInfo::new(RegClass::GPR,false,false,false,Some(2),Some(2),"rdx"),
+    RegInfo::new(RegClass::GPR,false,false,false,Some(3),Some(3),"rbx"),
+    RegInfo::new(RegClass::GPR,false,false,true,Some(4),Some(4),"rsp"),
+    RegInfo::new(RegClass::GPR,false,false,false,Some(5),Some(5),"rbp"),
+    RegInfo::new(RegClass::GPR,false,false,false,Some(6),Some(6),"rsi"),
+    RegInfo::new(RegClass::GPR,false,false,false,Some(7),Some(7),"rdi"),
     // r8-r15
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: false, special: false, arg: None, ret: None, name: "r8" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "r9" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "r10" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "r11" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "r12" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "r13" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "r14" },
-    RegInfo { reg_class: RegClass::GPR, callee_save: false, scratch: true, special: false, arg: None, ret: None, name: "r15" },
-
+    RegInfo::new(RegClass::GPR,false,false,false,None,None,"r8"),
+    RegInfo::new(RegClass::GPR,false,true,false,None,None,"r9"),
+    RegInfo::new(RegClass::GPR,false,true,false,None,None,"r10"),
+    RegInfo::new(RegClass::GPR,false,true,false,None,None,"r11"),
+    RegInfo::new(RegClass::GPR,false,true,false,None,None,"r12"),
+    RegInfo::new(RegClass::GPR,false,true,false,None,None,"r13"),
+    RegInfo::new(RegClass::GPR,false,true,false,None,None,"r14"),
+    RegInfo::new(RegClass::GPR,false,true,false,None,None,"r15"),
     // xmm0-xmm7
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(0), ret: Some(0), name: "xmm0" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(1), ret: Some(1), name: "xmm1" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(2), ret: Some(2), name: "xmm2" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(3), ret: Some(3), name: "xmm3" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(4), ret: Some(4), name: "xmm4" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(5), ret: Some(5), name: "xmm5" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(6), ret: Some(6), name: "xmm6" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: false, scratch: false, special: false, arg: Some(7), ret: Some(7), name: "xmm7" },
+    RegInfo::new(RegClass::VREG,false,false,false,Some(0),Some(0),"xmm0"),
+    RegInfo::new(RegClass::VREG,false,false,false,Some(1),Some(1),"xmm1"),
+    RegInfo::new(RegClass::VREG,false,false,false,Some(2),Some(2),"xmm2"),
+    RegInfo::new(RegClass::VREG,false,false,false,Some(3),Some(3),"xmm3"),
+    RegInfo::new(RegClass::VREG,false,false,false,Some(4),Some(4),"xmm4"),
+    RegInfo::new(RegClass::VREG,false,false,false,Some(5),Some(5),"xmm5"),
+    RegInfo::new(RegClass::VREG,false,false,false,Some(6),Some(6),"xmm6"),
+    RegInfo::new(RegClass::VREG,false,false,false,Some(7),Some(7),"xmm7"),
     // xmm8-xmm15
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "xmm8" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "xmm9" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "xmm10" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "xmm11" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "xmm12" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "xmm13" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "xmm14" },
-    RegInfo { reg_class: RegClass::VREG, callee_save: true, scratch: true, special: false, arg: None, ret: None, name: "xmm15" },
+    RegInfo::new(RegClass::VREG,true,true,false,None,None,"xmm8"),
+    RegInfo::new(RegClass::VREG,true,true,false,None,None,"xmm9"),
+    RegInfo::new(RegClass::VREG,true,true,false,None,None,"xmm10"),
+    RegInfo::new(RegClass::VREG,true,true,false,None,None,"xmm11"),
+    RegInfo::new(RegClass::VREG,true,true,false,None,None,"xmm12"),
+    RegInfo::new(RegClass::VREG,true,true,false,None,None,"xmm13"),
+    RegInfo::new(RegClass::VREG,true,true,false,None,None,"xmm14"),
+    RegInfo::new(RegClass::VREG,true,true,false,None,None,"xmm15"),
 ];
 
 #[cfg(target_arch = "x86_64")]
@@ -381,11 +381,11 @@ pub fn cpu_info(cpu_level: CpuLevel) -> CpuInfo {
         // TODO: Should we include args registers?
         scratch: Box::from(&[RAX, RCX, RDX, R8, R9, R10, R11][..]),
         sp: RSP,
-        vargs: (0..7).map(|i| R(XMM0.0+i)).collect(),
+        vargs: (0..7).map(|i| R(XMM0.0 + i)).collect(),
         vres: Box::from(&[XMM0, XMM1][..]),
         vsave: Box::from(&[][..]),
-        vscratch: (0..7).map(|i| R(XMM0.0+i)).collect(),
-        vany: (0..16).map(|i| R(XMM0.0+i)).collect(),
+        vscratch: (0..7).map(|i| R(XMM0.0 + i)).collect(),
+        vany: (0..16).map(|i| R(XMM0.0 + i)).collect(),
     }
 }
 
@@ -395,7 +395,9 @@ struct X86_64Compiler {
 
 impl X86_64Compiler {
     fn new(cpu_info: CpuInfo) -> Self {
-        Self { state: State::new(cpu_info) }
+        Self {
+            state: State::new(cpu_info),
+        }
     }
 }
 
@@ -408,19 +410,35 @@ impl Compiler for X86_64Compiler {
         todo!()
     }
 
-    fn ld(&mut self, ty: Type, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error> {
+    fn ld(&mut self, ty: Type, r: R, ra: R, offset: i32, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn st(&mut self, ty: Type, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error> {
+    fn st(&mut self, ty: Type, r: R, ra: R, offset: i32, i: &Ins) -> Result<(), Error> {
         todo!()
     }
 
-    fn vld(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error> {
+    fn vld(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        reg1: R,
+        reg2: R,
+        offset: i32,
+        i: &Ins,
+    ) -> Result<(), Error> {
         todo!()
     }
 
-    fn vst(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, offset: i32, i: &Ins) -> Result<(), Error> {
+    fn vst(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        reg1: R,
+        reg2: R,
+        offset: i32,
+        i: &Ins,
+    ) -> Result<(), Error> {
         todo!()
     }
 
@@ -476,7 +494,7 @@ impl Compiler for X86_64Compiler {
         todo!()
     }
 
-    fn mov(&mut self, reg: R, src: &Src, i: &Ins) -> Result<(), Error> {
+    fn mov<S: Into<Src>>(&mut self, dest: R, src: S) -> Result<&mut Self, Error> {
         todo!()
     }
 
@@ -500,35 +518,99 @@ impl Compiler for X86_64Compiler {
         todo!()
     }
 
-    fn vadd(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
+    fn vadd(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        reg1: R,
+        reg2: R,
+        src: &Src,
+        i: &Ins,
+    ) -> Result<(), Error> {
         todo!()
     }
 
-    fn vsub(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
+    fn vsub(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        reg1: R,
+        reg2: R,
+        src: &Src,
+        i: &Ins,
+    ) -> Result<(), Error> {
         todo!()
     }
 
-    fn vand(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
+    fn vand(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        reg1: R,
+        reg2: R,
+        src: &Src,
+        i: &Ins,
+    ) -> Result<(), Error> {
         todo!()
     }
 
-    fn vor(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
+    fn vor(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        reg1: R,
+        reg2: R,
+        src: &Src,
+        i: &Ins,
+    ) -> Result<(), Error> {
         todo!()
     }
 
-    fn vxor(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
+    fn vxor(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        reg1: R,
+        reg2: R,
+        src: &Src,
+        i: &Ins,
+    ) -> Result<(), Error> {
         todo!()
     }
 
-    fn vshl(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
+    fn vshl(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        reg1: R,
+        reg2: R,
+        src: &Src,
+        i: &Ins,
+    ) -> Result<(), Error> {
         todo!()
     }
 
-    fn vshr(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
+    fn vshr(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        reg1: R,
+        reg2: R,
+        src: &Src,
+        i: &Ins,
+    ) -> Result<(), Error> {
         todo!()
     }
 
-    fn vmul(&mut self, ty: Type, vsize: Vsize, reg1: R, reg2: R, src: &Src, i: &Ins) -> Result<(), Error> {
+    fn vmul(
+        &mut self,
+        ty: Type,
+        vsize: Vsize,
+        reg1: R,
+        reg2: R,
+        src: &Src,
+        i: &Ins,
+    ) -> Result<(), Error> {
         todo!()
     }
 
@@ -552,6 +634,10 @@ impl Compiler for X86_64Compiler {
         todo!()
     }
 
+    fn call_abs(&mut self, loc: u64, i: &Ins) -> Result<(), Error> {
+        todo!()
+    }
+
     fn ci(&mut self, reg: R, i: &Ins) -> Result<(), Error> {
         todo!()
     }
@@ -572,7 +658,7 @@ impl Compiler for X86_64Compiler {
         todo!()
     }
 
-    fn ret(&mut self, i: &Ins) -> Result<(), Error> {
+    fn ret(&mut self) -> Result<&mut Self, Error> {
         todo!()
     }
 }
@@ -854,7 +940,13 @@ fn gen_enter(state: &mut State, info: &EntryInfo, i: &Ins) -> Result<(), Error> 
         gen_push(state, &r.into(), i)?;
     }
 
-    let args_src : Box<[R]> = state.cpu_info.args().iter().take(info.args.len()).cloned().collect();
+    let args_src: Box<[R]> = state
+        .cpu_info
+        .args()
+        .iter()
+        .take(info.args.len())
+        .cloned()
+        .collect();
     gen_movm(state, &info.args, &args_src, i)?;
 
     if info.stack_size != 0 {
@@ -870,7 +962,13 @@ fn gen_leave(state: &mut State, info: &EntryInfo, i: &Ins) -> Result<(), Error> 
         gen_binary(state, OP_ADD, &regs::RSP, &regs::RSP, imm, i)?;
     }
 
-    let res_dest : Box<[R]> = state.cpu_info.res().iter().take(info.res.len()).cloned().collect();
+    let res_dest: Box<[R]> = state
+        .cpu_info
+        .res()
+        .iter()
+        .take(info.res.len())
+        .cloned()
+        .collect();
 
     gen_movm(state, &res_dest, &info.res, i)?;
 
@@ -882,15 +980,15 @@ fn gen_leave(state: &mut State, info: &EntryInfo, i: &Ins) -> Result<(), Error> 
 
 /// Multiple register move. Typically arguments of functions.
 /// Move the source register to the dest, avoiding dependencies.
-/// 
+///
 /// eg.
-/// 
+///
 ///   No dependencies
 ///   gen_movm(&[R(2), R(3)], &[R(1), R(0)]);
-/// 
+///
 ///   We cannot do this with moves alone. (ideally use xchg or push/pop)
 ///   gen_movm(&[R(0), R(1)], &[R(1), R(0)]);
-/// 
+///
 ///   
 fn gen_movm(state: &mut State, dest: &[R], src: &[R], i: &Ins) -> Result<(), Error> {
     let mut pops = Vec::new();
@@ -898,7 +996,7 @@ fn gen_movm(state: &mut State, dest: &[R], src: &[R], i: &Ins) -> Result<(), Err
         let d = dest[j];
         let s = src[j];
         if d != s {
-            if src[j+1..].contains(&d) {
+            if src[j + 1..].contains(&d) {
                 gen_push(state, &s.into(), i)?;
                 pops.push(d);
             } else {
@@ -965,7 +1063,8 @@ fn gen_call(state: &mut State, call_info: &CallInfo, i: &Ins) -> Result<(), Erro
     state.code.extend([0xff, 0x15]); // ff 15 00 00 00 00       call   *0x0(%rip)
     let loc = state.code.len();
     state.code.extend(0_i32.to_le_bytes());
-    state.fixups.push((loc, Fixup::Const(pos, 4)));
+    todo!();
+    // state.fixups.push((loc, Fixup::Const(pos, 4)));
 
     if bytes_pushed != 0 {
         gen_binary(
@@ -1026,7 +1125,8 @@ fn gen_vimm(
     gen_vex(state, r, x, b, w, 1, 0, l, p, op, modrm);
     let loc = state.code.len();
     state.code.extend(0_i32.to_le_bytes());
-    state.fixups.push((loc, Fixup::Const(pos, 4)));
+    todo!();
+    //state.fixups.push((loc, Fixup::Const(pos, 4)));
     Ok(())
 }
 
@@ -1352,10 +1452,12 @@ fn gen_mov(state: &mut State, dest: &R, src: &Src, i: &Ins) -> Result<(), Error>
         if imm == 0 {
             if dest.to_x86_high() != 0 {
                 // eg. xor %r8, %r8
-                state.code.extend([0x4d, 0x31, 0xc0 + dest.to_x86_low()*9]);
+                state
+                    .code
+                    .extend([0x4d, 0x31, 0xc0 + dest.to_x86_low() * 9]);
             } else {
                 // eg. xor %eax, %eax
-                state.code.extend([0x31, 0xc0 + dest.to_x86_low()*9]);
+                state.code.extend([0x31, 0xc0 + dest.to_x86_low() * 9]);
             }
         } else {
             gen_regreg(state, 0xc7, dest, &R(0));

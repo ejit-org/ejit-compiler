@@ -1,28 +1,58 @@
 //! Machine independent tests
-//! 
+//!
 //! TODO: Extend these to cover every instruction and register permutation.
-//! 
-use std::{cell::RefCell, sync::{Arc, Mutex}};
+//!
+use std::{
+    cell::RefCell,
+    sync::{Arc, Mutex},
+};
 
-#[cfg(target_arch="x64_64")]
+#[cfg(target_arch = "x64_64")]
 use crate::x86_64::native_cpu_info;
 
-#[cfg(target_arch="aarch64")]
+#[cfg(target_arch = "aarch64")]
 use crate::aarch64::native_cpu_info;
 
-#[cfg(target_arch="x64_64")]
+#[cfg(target_arch = "x64_64")]
 use crate::x86_64::native_compiler;
 
-#[cfg(target_arch="aarch64")]
+#[cfg(target_arch = "aarch64")]
 use crate::aarch64::native_compiler;
 
 use super::*;
-
 
 #[test]
 fn instruction_size() {
     assert!(std::mem::size_of::<Ins>() <= 32);
 }
+
+#[test]
+fn ret_works() -> Result<(), Error> {
+    let mut compiler = native_compiler(native_cpu_info());
+    let prog = compiler
+        .ret()?
+        .to_executable()?;
+    let (_, _) = unsafe { prog.call(0, &[]).unwrap() };
+    Ok(())
+}
+
+#[test]
+fn movi_works() -> Result<(), Error> {
+    let cpu_info = native_cpu_info();
+    let res0 = cpu_info.res()[0];
+    let arg0 = cpu_info.args()[0];
+    let arg1 = cpu_info.args()[1];
+    let mut compiler = native_compiler(cpu_info);
+    let prog = compiler
+        .mov(res0, 123)?
+        .ret()?
+        .to_executable()?;
+    println!("{}", prog.fmt_arm_url());
+    // let (value, _) = unsafe { prog.call(0, &[]).unwrap() };
+    // assert_eq!(value, 123);
+    Ok(())
+}
+
 
 #[test]
 fn generic_basic() {
@@ -32,7 +62,6 @@ fn generic_basic() {
     let arg0 = cpu_info.args()[0];
     let arg1 = cpu_info.args()[1];
 
-
     {
         let compiler = native_compiler(native_cpu_info());
         let prog = Executable::from_ir(compiler, &[Mov(res0, 123.into()), Ret]).unwrap();
@@ -41,13 +70,13 @@ fn generic_basic() {
     }
     {
         let compiler = native_compiler(native_cpu_info());
-        let prog = Executable::from_ir(compiler, &[Add(res0, arg0, arg1.into()),Ret,]).unwrap();
+        let prog = Executable::from_ir(compiler, &[Add(res0, arg0, arg1.into()), Ret]).unwrap();
         let (res, _) = unsafe { prog.call(0, &[100, 1]).unwrap() };
         assert_eq!(res, 101);
     }
     {
         let compiler = native_compiler(native_cpu_info());
-        let prog = Executable::from_ir(compiler, &[Sub(res0, arg0, arg1.into()),Ret,]).unwrap();
+        let prog = Executable::from_ir(compiler, &[Sub(res0, arg0, arg1.into()), Ret]).unwrap();
         let (res, _) = unsafe { prog.call(0, &[100, 1]).unwrap() };
         assert_eq!(res, 99);
     }
@@ -57,28 +86,32 @@ fn generic_basic() {
 fn generic_branch() {
     fn test_one_branch(c: Cond, expected: [bool; 5]) {
         use Ins::*;
-        const IS_FALSE : u32 = 0;
-        const IS_TRUE : u32 = 1;
+        const IS_FALSE: u32 = 0;
+        const IS_TRUE: u32 = 1;
         let cpu_info = native_cpu_info();
         let res0 = cpu_info.res()[0];
         let arg0 = cpu_info.args()[0];
         let arg1 = cpu_info.args()[1];
-        let mut prog = Executable::from_ir(native_compiler(native_cpu_info()), &[
-            Cmp(arg0, arg1.into()),
-            Br(c, IS_TRUE),
-
-            Label(IS_FALSE),
-            Mov(res0, 0.into()),
-            Ret,
-
-            Label(IS_TRUE),
-            Mov(res0, 1.into()),
-            Ret,
-        ])
+        let mut prog = Executable::from_ir(
+            native_compiler(native_cpu_info()),
+            &[
+                Cmp(arg0, arg1.into()),
+                Br(c, IS_TRUE),
+                Label(IS_FALSE),
+                Mov(res0, 0.into()),
+                Ret,
+                Label(IS_TRUE),
+                Mov(res0, 1.into()),
+                Ret,
+            ],
+        )
         .unwrap();
 
         let tv = [[1, 1], [1, 2], [2, 1], [1, !0], [!0, 1]];
-        let res = tv.iter().map(|args| unsafe { prog.call(0, &args[..]).unwrap().0 != 0 }).collect::<Vec<_>>();
+        let res = tv
+            .iter()
+            .map(|args| unsafe { prog.call(0, &args[..]).unwrap().0 != 0 })
+            .collect::<Vec<_>>();
         // println!("{res:?}");
         assert_eq!(&expected[..], &res, "{:?}", c);
     }
@@ -106,23 +139,29 @@ fn generic_loop() {
         let res0 = cpu_info.res()[0];
         let arg0 = cpu_info.args()[0];
         let arg1 = cpu_info.args()[1];
-        const COUNT : R = R(0);
-        const TOT : R = R(1);
-        const LOOP : u32 = 0;
-        let mut prog = Executable::from_ir(native_compiler(native_cpu_info()), &[
-            Mov(COUNT, 10000.into()),
-            Mov(TOT, 0.into()),
-            Label(LOOP),
-            Add(TOT, TOT, COUNT.into()),
-            Sub(COUNT, COUNT, 1.into()),
-            Cmp(COUNT, 0.into()),
-            Br(Cond::Ne, LOOP),
-            Mov(res0, TOT.into()),
-            Ret,
-        ])
+        const COUNT: R = R(0);
+        const TOT: R = R(1);
+        const LOOP: u32 = 0;
+        let mut prog = Executable::from_ir(
+            native_compiler(native_cpu_info()),
+            &[
+                Mov(COUNT, 10000.into()),
+                Mov(TOT, 0.into()),
+                Label(LOOP),
+                Add(TOT, TOT, COUNT.into()),
+                Sub(COUNT, COUNT, 1.into()),
+                Cmp(COUNT, 0.into()),
+                Br(Cond::Ne, LOOP),
+                Mov(res0, TOT.into()),
+                Ret,
+            ],
+        )
         .unwrap();
         // Compile time varies from 9μs (hot) to 11.4μs (cold).
-        println!("compile time {}ns", std::time::Instant::elapsed(&t0).as_nanos());
+        println!(
+            "compile time {}ns",
+            std::time::Instant::elapsed(&t0).as_nanos()
+        );
         let (res, _) = unsafe { prog.call(0, &[]).unwrap() };
         assert_eq!(res, 50005000);
     }
@@ -137,19 +176,22 @@ fn generic_load_store() {
     let arg0 = cpu_info.args()[0];
     let arg1 = cpu_info.args()[1];
     let sp = cpu_info.sp();
-    let mut prog = Executable::from_ir(native_compiler(native_cpu_info()), &[
-        Enter(16.into()),
-        St(U8, arg0, sp, 6),
-        St(U8, arg1, sp, 7),
-        Ld(U16, res0, sp, 6),
-        Leave(16.into()),
-        Ret,
-    ])
+    let mut prog = Executable::from_ir(
+        native_compiler(native_cpu_info()),
+        &[
+            Enter(16.into()),
+            St(U8, arg0, sp, 6),
+            St(U8, arg1, sp, 7),
+            Ld(U16, res0, sp, 6),
+            Leave(16.into()),
+            Ret,
+        ],
+    )
     .unwrap();
     let (res, _) = unsafe { prog.call(0, &[0x34, 0x12]).unwrap() };
-    #[cfg(target_endian="little")]
+    #[cfg(target_endian = "little")]
     assert_eq!(res, 0x1234);
-    #[cfg(target_endian="big")]
+    #[cfg(target_endian = "big")]
     assert_eq!(res, 0x3412);
 }
 #[test]
@@ -157,7 +199,7 @@ fn generic_regreg() {
     use Ins::*;
     use Type::*;
     let mut a = [100_i64, 200, 15, 4, 1, -1, -1, -1, 123, -12300, -12300];
-    let mut b = [  1_i64,   1,  3, 9, 9, 1, 1, 1, 100, 100, 100];
+    let mut b = [1_i64, 1, 3, 9, 9, 1, 1, 1, 100, 100, 100];
     let expected = [
         a[0] + b[0],
         a[1] - b[1],
@@ -178,65 +220,58 @@ fn generic_regreg() {
     let arg1 = cpu_info.args()[1];
     let ra = cpu_info.scratch()[4];
     let rb = cpu_info.scratch()[5];
-    let mut prog = Executable::from_ir(native_compiler(native_cpu_info()), &[
-        Ld(U64, ra, arg0, 0*8),
-        Ld(U64, rb, arg1, 0*8),
-        Add(ra, ra, rb.into()),
-        St(U64, ra, arg0, 0*8),
-
-        Ld(U64, ra, arg0, 1*8),
-        Ld(U64, rb, arg1, 1*8),
-        Sub(ra, ra, rb.into()),
-        St(U64, ra, arg0, 1*8),
-
-        Ld(U64, ra, arg0, 2*8),
-        Ld(U64, rb, arg1, 2*8),
-        And(ra, ra, rb.into()),
-        St(U64, ra, arg0, 2*8),
-
-        Ld(U64, ra, arg0, 3*8),
-        Ld(U64, rb, arg1, 3*8),
-        Or(ra, ra, rb.into()),
-        St(U64, ra, arg0, 3*8),
-
-        Ld(U64, ra, arg0, 4*8),
-        Ld(U64, rb, arg1, 4*8),
-        Xor(ra, ra, rb.into()),
-        St(U64, ra, arg0, 4*8),
-
-        Ld(U64, ra, arg0, 5*8),
-        Ld(U64, rb, arg1, 5*8),
-        Shl(ra, ra, rb.into()),
-        St(U64, ra, arg0, 5*8),
-
-        Ld(U64, ra, arg0, 6*8),
-        Ld(U64, rb, arg1, 6*8),
-        Shr(ra, ra, rb.into()),
-        St(U64, ra, arg0, 6*8),
-
-        Ld(U64, ra, arg0, 7*8),
-        Ld(U64, rb, arg1, 7*8),
-        Sar(ra, ra, rb.into()),
-        St(U64, ra, arg0, 7*8),
-
-        Ld(U64, ra, arg0, 8*8),
-        Ld(U64, rb, arg1, 8*8),
-        Mul(ra, ra, rb.into()),
-        St(U64, ra, arg0, 8*8),
-
-        Ld(U64, ra, arg0, 9*8),
-        Ld(U64, rb, arg1, 9*8),
-        Udiv(ra, ra, rb.into()),
-        St(U64, ra, arg0, 9*8),
-
-        Ld(U64, ra, arg0, 10*8),
-        Ld(U64, rb, arg1, 10*8),
-        Sdiv(ra, ra, rb.into()),
-        St(U64, ra, arg0, 10*8),
-        Ret,
-    ])
+    let mut prog = Executable::from_ir(
+        native_compiler(native_cpu_info()),
+        &[
+            Ld(U64, ra, arg0, 0 * 8),
+            Ld(U64, rb, arg1, 0 * 8),
+            Add(ra, ra, rb.into()),
+            St(U64, ra, arg0, 0 * 8),
+            Ld(U64, ra, arg0, 1 * 8),
+            Ld(U64, rb, arg1, 1 * 8),
+            Sub(ra, ra, rb.into()),
+            St(U64, ra, arg0, 1 * 8),
+            Ld(U64, ra, arg0, 2 * 8),
+            Ld(U64, rb, arg1, 2 * 8),
+            And(ra, ra, rb.into()),
+            St(U64, ra, arg0, 2 * 8),
+            Ld(U64, ra, arg0, 3 * 8),
+            Ld(U64, rb, arg1, 3 * 8),
+            Or(ra, ra, rb.into()),
+            St(U64, ra, arg0, 3 * 8),
+            Ld(U64, ra, arg0, 4 * 8),
+            Ld(U64, rb, arg1, 4 * 8),
+            Xor(ra, ra, rb.into()),
+            St(U64, ra, arg0, 4 * 8),
+            Ld(U64, ra, arg0, 5 * 8),
+            Ld(U64, rb, arg1, 5 * 8),
+            Shl(ra, ra, rb.into()),
+            St(U64, ra, arg0, 5 * 8),
+            Ld(U64, ra, arg0, 6 * 8),
+            Ld(U64, rb, arg1, 6 * 8),
+            Shr(ra, ra, rb.into()),
+            St(U64, ra, arg0, 6 * 8),
+            Ld(U64, ra, arg0, 7 * 8),
+            Ld(U64, rb, arg1, 7 * 8),
+            Sar(ra, ra, rb.into()),
+            St(U64, ra, arg0, 7 * 8),
+            Ld(U64, ra, arg0, 8 * 8),
+            Ld(U64, rb, arg1, 8 * 8),
+            Mul(ra, ra, rb.into()),
+            St(U64, ra, arg0, 8 * 8),
+            Ld(U64, ra, arg0, 9 * 8),
+            Ld(U64, rb, arg1, 9 * 8),
+            Udiv(ra, ra, rb.into()),
+            St(U64, ra, arg0, 9 * 8),
+            Ld(U64, ra, arg0, 10 * 8),
+            Ld(U64, rb, arg1, 10 * 8),
+            Sdiv(ra, ra, rb.into()),
+            St(U64, ra, arg0, 10 * 8),
+            Ret,
+        ],
+    )
     .unwrap();
-    
+
     let a0 = a.as_ptr() as u64;
     let a1 = b.as_ptr() as u64;
     let (res, _) = unsafe { prog.call(0, &[a0, a1]).unwrap() };
@@ -244,13 +279,12 @@ fn generic_regreg() {
     assert_eq!(a, expected);
 }
 
-
 #[test]
 fn generic_regimm() {
     use Ins::*;
     use Type::*;
     let mut a = [100_i64, 200, 15, 4, 1, -1, -1, -1, 123, -12300, -12300];
-    let mut b = [  1_i64,   1,  3, 9, 9, 1, 1, 1, 100, 100, 100];
+    let mut b = [1_i64, 1, 3, 9, 9, 1, 1, 1, 100, 100, 100];
     let expected = [
         a[0] + b[0],
         a[1] - b[1],
@@ -270,54 +304,47 @@ fn generic_regimm() {
     let arg0 = cpu_info.args()[0];
     let arg1 = cpu_info.args()[1];
     let ra = cpu_info.scratch()[4];
-    let mut prog = Executable::from_ir(native_compiler(native_cpu_info()), &[
-        Ld(U64, ra, arg0, 0*8),
-        Add(ra, ra, b[0].into()),
-        St(U64, ra, arg0, 0*8),
-
-        Ld(U64, ra, arg0, 1*8),
-        Sub(ra, ra, b[1].into()),
-        St(U64, ra, arg0, 1*8),
-
-        Ld(U64, ra, arg0, 2*8),
-        And(ra, ra, b[2].into()),
-        St(U64, ra, arg0, 2*8),
-
-        Ld(U64, ra, arg0, 3*8),
-        Or(ra, ra, b[3].into()),
-        St(U64, ra, arg0, 3*8),
-
-        Ld(U64, ra, arg0, 4*8),
-        Xor(ra, ra, b[4].into()),
-        St(U64, ra, arg0, 4*8),
-
-        Ld(U64, ra, arg0, 5*8),
-        Shl(ra, ra, b[5].into()),
-        St(U64, ra, arg0, 5*8),
-
-        Ld(U64, ra, arg0, 6*8),
-        Shr(ra, ra, b[6].into()),
-        St(U64, ra, arg0, 6*8),
-
-        Ld(U64, ra, arg0, 7*8),
-        Sar(ra, ra, b[7].into()),
-        St(U64, ra, arg0, 7*8),
-
-        Ld(U64, ra, arg0, 8*8),
-        Mul(ra, ra, b[8].into()),
-        St(U64, ra, arg0, 8*8),
-
-        Ld(U64, ra, arg0, 9*8),
-        Udiv(ra, ra, b[9].into()),
-        St(U64, ra, arg0, 9*8),
-
-        Ld(U64, ra, arg0, 10*8),
-        Sdiv(ra, ra, b[10].into()),
-        St(U64, ra, arg0, 10*8),
-        Ret,
-    ])
+    let mut prog = Executable::from_ir(
+        native_compiler(native_cpu_info()),
+        &[
+            Ld(U64, ra, arg0, 0 * 8),
+            Add(ra, ra, b[0].into()),
+            St(U64, ra, arg0, 0 * 8),
+            Ld(U64, ra, arg0, 1 * 8),
+            Sub(ra, ra, b[1].into()),
+            St(U64, ra, arg0, 1 * 8),
+            Ld(U64, ra, arg0, 2 * 8),
+            And(ra, ra, b[2].into()),
+            St(U64, ra, arg0, 2 * 8),
+            Ld(U64, ra, arg0, 3 * 8),
+            Or(ra, ra, b[3].into()),
+            St(U64, ra, arg0, 3 * 8),
+            Ld(U64, ra, arg0, 4 * 8),
+            Xor(ra, ra, b[4].into()),
+            St(U64, ra, arg0, 4 * 8),
+            Ld(U64, ra, arg0, 5 * 8),
+            Shl(ra, ra, b[5].into()),
+            St(U64, ra, arg0, 5 * 8),
+            Ld(U64, ra, arg0, 6 * 8),
+            Shr(ra, ra, b[6].into()),
+            St(U64, ra, arg0, 6 * 8),
+            Ld(U64, ra, arg0, 7 * 8),
+            Sar(ra, ra, b[7].into()),
+            St(U64, ra, arg0, 7 * 8),
+            Ld(U64, ra, arg0, 8 * 8),
+            Mul(ra, ra, b[8].into()),
+            St(U64, ra, arg0, 8 * 8),
+            Ld(U64, ra, arg0, 9 * 8),
+            Udiv(ra, ra, b[9].into()),
+            St(U64, ra, arg0, 9 * 8),
+            Ld(U64, ra, arg0, 10 * 8),
+            Sdiv(ra, ra, b[10].into()),
+            St(U64, ra, arg0, 10 * 8),
+            Ret,
+        ],
+    )
     .unwrap();
-    
+
     // println!("{}", prog.fmt_url());
     let a0 = a.as_ptr() as u64;
     let a1 = b.as_ptr() as u64;
@@ -336,12 +363,15 @@ fn generic_call0() {
     }
 
     let cpu_info = native_cpu_info();
-    let mut prog = Executable::from_ir(native_compiler(native_cpu_info()), &[
-        Enter(0.into()),
-        Call((hello_world as fn(), src0(), src0(), src0()).into()),
-        Leave(0.into()),
-        Ret,
-    ])
+    let mut prog = Executable::from_ir(
+        native_compiler(native_cpu_info()),
+        &[
+            Enter(0.into()),
+            Call((hello_world as fn(), src0(), src0(), src0()).into()),
+            Leave(0.into()),
+            Ret,
+        ],
+    )
     .unwrap();
     let (res, _) = unsafe { prog.call(0, &[]).unwrap() };
     // todo!();
@@ -355,7 +385,9 @@ fn alloc_save() {
     fn hello_world(x: u64, y: u64) {
         println!("{x:x} {y:x}");
         let res = y as *mut String;
-        unsafe { *res = format!("hello world! {x}"); }
+        unsafe {
+            *res = format!("hello world! {x}");
+        }
     }
 
     let mut cpu_info = native_cpu_info();
@@ -367,26 +399,41 @@ fn alloc_save() {
     // save it in the function call instead.
     let arg_in = cpu_info.alloc_any().unwrap();
     while let Ok(arg0) = cpu_info.alloc_save() {
-        let entry : Box<EntryInfo> = EntryInfo::new()
-            .with_args(&[arg0])
-            .boxed();
-        let entry_info = EntryInfo::new()
-            .with_args(&[arg_in])
-            .boxed();
+        let entry: Box<EntryInfo> = EntryInfo::new().with_args(&[arg0]).boxed();
+        let entry_info = EntryInfo::new().with_args(&[arg_in]).boxed();
         let cpu_info = native_cpu_info();
 
-        let mut prog = Executable::from_ir(native_compiler(native_cpu_info()), &[
-            Enter(entry_info.clone()),
-            Mov(arg0, 123.into()),
-            Call((hello_world as fn(u64, u64), src2(arg0, arg_in), src0(), src1(arg_in)).into()),
-            Call((hello_world as fn(u64, u64), src2(arg0, arg_in), src0(), src1(arg_in)).into()),
-            Leave(entry_info),
-            Ret,
-        ])
+        let mut prog = Executable::from_ir(
+            native_compiler(native_cpu_info()),
+            &[
+                Enter(entry_info.clone()),
+                Mov(arg0, 123.into()),
+                Call(
+                    (
+                        hello_world as fn(u64, u64),
+                        src2(arg0, arg_in),
+                        src0(),
+                        src1(arg_in),
+                    )
+                        .into(),
+                ),
+                Call(
+                    (
+                        hello_world as fn(u64, u64),
+                        src2(arg0, arg_in),
+                        src0(),
+                        src1(arg_in),
+                    )
+                        .into(),
+                ),
+                Leave(entry_info),
+                Ret,
+            ],
+        )
         .unwrap();
 
         let mut res = String::new();
-        let res_ptr = &mut res as * mut String as u64;
+        let res_ptr = &mut res as *mut String as u64;
 
         unsafe { prog.call(0, &[res_ptr]) };
         // println!("{}", prog.fmt_url());
@@ -409,19 +456,21 @@ fn alloc_scratch() {
     // This time we save the register over the call but don't
     // need to save on entry.
     while let Ok(arg0) = cpu_info.alloc_scratch() {
-        let entry : Box<EntryInfo> = EntryInfo::new().boxed();
-        let mut prog = Executable::from_ir(native_compiler(native_cpu_info()), &[
-            Enter(entry.clone()),
-            Mov(arg0, 123.into()),
-            Call((hello_world as fn(u64), src1(arg0), src0(), src1(arg0)).into()),
-            Call((hello_world as fn(u64), src1(arg0), src0(), src1(arg0)).into()),
-            Leave(entry),
-            Ret,
-        ])
+        let entry: Box<EntryInfo> = EntryInfo::new().boxed();
+        let mut prog = Executable::from_ir(
+            native_compiler(native_cpu_info()),
+            &[
+                Enter(entry.clone()),
+                Mov(arg0, 123.into()),
+                Call((hello_world as fn(u64), src1(arg0), src0(), src1(arg0)).into()),
+                Call((hello_world as fn(u64), src1(arg0), src0(), src1(arg0)).into()),
+                Leave(entry),
+                Ret,
+            ],
+        )
         .unwrap();
 
         let (res, _) = unsafe { prog.call(0, &[]).unwrap() };
-
     }
     // println!("{}", prog.fmt_url());
     // todo!();

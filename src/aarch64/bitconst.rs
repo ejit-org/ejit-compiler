@@ -1,4 +1,3 @@
-
 pub fn get_bitconst_opcode(c: u64) -> Option<u32> {
     let p = BITCONST.partition_point(|(a, _)| *a <= c);
     if BITCONST[p].0 == c {
@@ -8,8 +7,7 @@ pub fn get_bitconst_opcode(c: u64) -> Option<u32> {
     }
 }
 
-
-const BITCONST : &[(u64, u32)] = &[
+const BITCONST: &[(u64, u32)] = &[
     (0x0000000000000001, 0x00400000),
     (0x0000000000000002, 0x007f0000),
     (0x0000000000000003, 0x00400400),

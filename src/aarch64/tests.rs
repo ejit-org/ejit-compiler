@@ -8,49 +8,52 @@ fn test_binary() {
     use Ins::*;
     let cpu_info = cpu_info(crate::CpuLevel::Simd512);
     let compiler = Aarch64Compiler::new(cpu_info);
-    let prog = Executable::from_ir(compiler, &[
-        Add(X1, X2, X3.into()),
-        Sub(X1, X2, X3.into()),
-        Adc(X1, X2, X3.into()),
-        Sbb(X1, X2, X3.into()),
-        And(X1, X2, X3.into()),
-        Or(X1, X2, X3.into()),
-        Xor(X1, X2, X3.into()),
-        Shl(X1, X2, X3.into()),
-        Shr(X1, X2, X3.into()),
-        Sar(X1, X2, X3.into()),
-        Mul(X1, X2, X3.into()),
-        Udiv(X1, X2, X3.into()),
-        Sdiv(X1, X2, X3.into()),
-        Add(X1, X2, 0x0.into()),
-        Sub(X1, X2, 0x0.into()),
-        Adc(X1, X2, 0x0.into()),
-        Sbb(X1, X2, 0x0.into()),
-        And(X1, X2, 0x0.into()),
-        Or(X1, X2, 0x0.into()),
-        Xor(X1, X2, 0x0.into()),
-        Shl(X1, X2, 0x0.into()),
-        Shr(X1, X2, 0x0.into()),
-        Sar(X1, X2, 0x0.into()),
-        Mul(X1, X2, 0x0.into()),
-        Udiv(X1, X2, 0x0.into()),
-        Sdiv(X1, X2, 0x0.into()),
-        Add(X1, X2, 0x123.into()),
-        Sub(X1, X2, 0x123.into()),
-        Adc(X1, X2, 0x123.into()),
-        Sbb(X1, X2, 0x123.into()),
-        And(X1, X2, 0x123.into()),
-        Or(X1, X2, 0x123.into()),
-        Xor(X1, X2, 0x123.into()),
-        Shl(X1, X2, 0x123.into()),
-        Shr(X1, X2, 0x123.into()),
-        Sar(X1, X2, 0x123.into()),
-        Mul(X1, X2, 0x123.into()),
-        Udiv(X1, X2, 0x123.into()),
-        Sdiv(X1, X2, 0x123.into()),
-        Add(X1, X2, 0x123000.into()),
-        Sub(X1, X2, 0x123000.into()),
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Add(X1, X2, X3.into()),
+            Sub(X1, X2, X3.into()),
+            Adc(X1, X2, X3.into()),
+            Sbb(X1, X2, X3.into()),
+            And(X1, X2, X3.into()),
+            Or(X1, X2, X3.into()),
+            Xor(X1, X2, X3.into()),
+            Shl(X1, X2, X3.into()),
+            Shr(X1, X2, X3.into()),
+            Sar(X1, X2, X3.into()),
+            Mul(X1, X2, X3.into()),
+            Udiv(X1, X2, X3.into()),
+            Sdiv(X1, X2, X3.into()),
+            Add(X1, X2, 0x0.into()),
+            Sub(X1, X2, 0x0.into()),
+            Adc(X1, X2, 0x0.into()),
+            Sbb(X1, X2, 0x0.into()),
+            And(X1, X2, 0x0.into()),
+            Or(X1, X2, 0x0.into()),
+            Xor(X1, X2, 0x0.into()),
+            Shl(X1, X2, 0x0.into()),
+            Shr(X1, X2, 0x0.into()),
+            Sar(X1, X2, 0x0.into()),
+            Mul(X1, X2, 0x0.into()),
+            Udiv(X1, X2, 0x0.into()),
+            Sdiv(X1, X2, 0x0.into()),
+            Add(X1, X2, 0x123.into()),
+            Sub(X1, X2, 0x123.into()),
+            Adc(X1, X2, 0x123.into()),
+            Sbb(X1, X2, 0x123.into()),
+            And(X1, X2, 0x123.into()),
+            Or(X1, X2, 0x123.into()),
+            Xor(X1, X2, 0x123.into()),
+            Shl(X1, X2, 0x123.into()),
+            Shr(X1, X2, 0x123.into()),
+            Sar(X1, X2, 0x123.into()),
+            Mul(X1, X2, 0x123.into()),
+            Udiv(X1, X2, 0x123.into()),
+            Sdiv(X1, X2, 0x123.into()),
+            Add(X1, X2, 0x123000.into()),
+            Sub(X1, X2, 0x123000.into()),
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_arm_url(),
@@ -64,16 +67,19 @@ fn test_unary() {
     use Ins::*;
     let cpu_info = cpu_info(crate::CpuLevel::Simd512);
     let compiler = Aarch64Compiler::new(cpu_info);
-    let prog = Executable::from_ir(compiler, &[
-        Mov(X1, X2.into()),
-        Not(X1, X2.into()),
-        Neg(X1, X2.into()),
-        Cmp(X1, X2.into()),
-        Mov(X1, 123.into()),
-        Not(X1, 123.into()),
-        Neg(X1, 123.into()),
-        Cmp(X1, 123.into()),
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Mov(X1, X2.into()),
+            Not(X1, X2.into()),
+            Neg(X1, X2.into()),
+            Cmp(X1, X2.into()),
+            Mov(X1, 123.into()),
+            Not(X1, 123.into()),
+            Neg(X1, 123.into()),
+            Cmp(X1, 123.into()),
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_arm_url(),
@@ -84,38 +90,38 @@ fn test_unary() {
 #[test]
 fn test_misc() {
     use regs::*;
-    use Ins::*;
     use Cond::*;
+    use Ins::*;
     let cpu_info = cpu_info(crate::CpuLevel::Simd512);
     let compiler = Aarch64Compiler::new(cpu_info);
-    let prog = Executable::from_ir(compiler, &[
-        Addr(X1, 1),
-        Addr(X1, 1),
-        Label(1),
-        Addr(X1, 1),
-        Addr(X1, 1),
-
-        Ci(X1),
-        Bi(X1),
-
-        Jmp(2),
-        Jmp(2),
-        Label(2),
-        Jmp(2),
-        Jmp(2),
-
-        Br(Eq, 3),
-        Br(Ne, 3),
-        Br(Sgt, 3),
-        Br(Sge, 3),
-        Br(Slt, 3),
-        Label(3),
-        Br(Sle, 3),
-        Br(Ugt, 3),
-        Br(Uge, 3),
-        Br(Ult, 3),
-        Br(Ule, 3),
-    ])
+    let prog = Executable::from_ir(
+        compiler,
+        &[
+            Addr(X1, 1),
+            Addr(X1, 1),
+            Label(1),
+            Addr(X1, 1),
+            Addr(X1, 1),
+            Ci(X1),
+            Bi(X1),
+            Jmp(2),
+            Jmp(2),
+            Label(2),
+            Jmp(2),
+            Jmp(2),
+            Br(Eq, 3),
+            Br(Ne, 3),
+            Br(Sgt, 3),
+            Br(Sge, 3),
+            Br(Slt, 3),
+            Label(3),
+            Br(Sle, 3),
+            Br(Ugt, 3),
+            Br(Uge, 3),
+            Br(Ult, 3),
+            Br(Ule, 3),
+        ],
+    )
     .unwrap();
     assert_eq!(
         prog.fmt_arm_url(),
